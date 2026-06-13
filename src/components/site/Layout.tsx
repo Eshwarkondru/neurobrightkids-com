@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { Toaster } from "@/components/ui/sonner";
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
       <Footer />
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
