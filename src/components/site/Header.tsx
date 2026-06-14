@@ -14,6 +14,7 @@ const nav = [
   { to: "/teacher", label: "Teacher" },
   { to: "/research", label: "Research" },
   { to: "/contact", label: "Contact" },
+  { to: "/install", label: "Get the App" },
 ] as const;
 
 export function Header() {
