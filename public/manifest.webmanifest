@@ -1,0 +1,16 @@
+{
+  "name": "NeuroLearn AI",
+  "short_name": "NeuroLearn",
+  "description": "AI-powered adaptive learning and early screening for Dyslexia, Dysgraphia, Dyscalculia & ADHD.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "categories": ["education", "health", "kids"],
+  "icons": [
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
