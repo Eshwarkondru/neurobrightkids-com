@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResearchRouteImport } from './routes/research'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ParentRouteImport } from './routes/parent'
+import { Route as InstallRouteImport } from './routes/install'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -43,6 +44,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ParentRoute = ParentRouteImport.update({
   id: '/parent',
   path: '/parent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallRoute = InstallRouteImport.update({
+  id: '/install',
+  path: '/install',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesRoute = GamesRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/games': typeof GamesRoute
+  '/install': typeof InstallRoute
   '/parent': typeof ParentRoute
   '/reports': typeof ReportsRoute
   '/research': typeof ResearchRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/games': typeof GamesRoute
+  '/install': typeof InstallRoute
   '/parent': typeof ParentRoute
   '/reports': typeof ReportsRoute
   '/research': typeof ResearchRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/games': typeof GamesRoute
+  '/install': typeof InstallRoute
   '/parent': typeof ParentRoute
   '/reports': typeof ReportsRoute
   '/research': typeof ResearchRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/games'
+    | '/install'
     | '/parent'
     | '/reports'
     | '/research'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/games'
+    | '/install'
     | '/parent'
     | '/reports'
     | '/research'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/games'
+    | '/install'
     | '/parent'
     | '/reports'
     | '/research'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   GamesRoute: typeof GamesRoute
+  InstallRoute: typeof InstallRoute
   ParentRoute: typeof ParentRoute
   ReportsRoute: typeof ReportsRoute
   ResearchRoute: typeof ResearchRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/parent'
       fullPath: '/parent'
       preLoaderRoute: typeof ParentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/install': {
+      id: '/install'
+      path: '/install'
+      fullPath: '/install'
+      preLoaderRoute: typeof InstallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   GamesRoute: GamesRoute,
+  InstallRoute: InstallRoute,
   ParentRoute: ParentRoute,
   ReportsRoute: ReportsRoute,
   ResearchRoute: ResearchRoute,
