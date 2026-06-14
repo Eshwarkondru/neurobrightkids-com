@@ -37,7 +37,7 @@ export function Header() {
               <Link
                 key={n.to}
                 to={n.to}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground whitespace-nowrap"
                 activeProps={{ className: "bg-secondary text-foreground" }}
                 activeOptions={{ exact: n.to === "/" }}
               >
