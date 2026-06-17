@@ -1,29 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, AlertTriangle, Brain, CheckCircle2, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, Brain, CheckCircle2, Database, TrendingUp } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { Progress } from "@/components/ui/progress";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
+import { computeAggregates, datasetSummary } from "@/lib/dataset";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — NeuroLearn AI" }, { name: "description", content: "Cognitive analytics dashboard with real-time AI predictions." }] }),
   component: Dashboard,
 });
 
-const skills = [
-  { name: "Attention", score: 78 },{ name: "Memory", score: 84 },{ name: "Reading", score: 71 },{ name: "Writing", score: 66 },{ name: "Math", score: 80 },
-];
-const trend = Array.from({length:8}).map((_,i)=>({w:`W${i+1}`, score: 55+i*4+Math.round(Math.sin(i)*3)}));
-const sessions = [
-  { d: "Mon", min: 12 },{ d: "Tue", min: 18 },{ d: "Wed", min: 9 },{ d: "Thu", min: 22 },{ d: "Fri", min: 14 },{ d: "Sat", min: 25 },{ d: "Sun", min: 17 },
-];
-const risk = [
-  { name: "Dyslexia", value: 32, level: "Low" },
-  { name: "Dysgraphia", value: 58, level: "Moderate" },
-  { name: "Dyscalculia", value: 22, level: "Low" },
-  { name: "ADHD", value: 74, level: "High" },
-];
+const { skills, trend, sessions, risk } = computeAggregates();
+const skillByName = (n: string) => skills.find(s => s.name === n)?.score ?? 0;
+const overallConfidence = Math.round(
+  (skills.reduce((a, b) => a + b.score, 0) / skills.length) * 0.95 + 5,
+);
 const riskColor = (lv: string) => lv === "High" ? "var(--destructive)" : lv === "Moderate" ? "var(--warning)" : "var(--success)";
 
 function Dashboard() {
