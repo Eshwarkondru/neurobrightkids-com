@@ -1,0 +1,45 @@
+{
+  "total_samples": 5200,
+  "sources": [
+    {
+      "name": "OULAD",
+      "count": 1467
+    },
+    {
+      "name": "Kaggle-StudentPerf",
+      "count": 1157
+    },
+    {
+      "name": "PISA-2018-Sample",
+      "count": 760
+    },
+    {
+      "name": "NIH-LD-Screening",
+      "count": 748
+    },
+    {
+      "name": "UCI-StudentMath",
+      "count": 572
+    },
+    {
+      "name": "UCI-StudentPort",
+      "count": 496
+    }
+  ],
+  "age_range": [
+    6,
+    16
+  ],
+  "features": [
+    "attention",
+    "memory",
+    "reading",
+    "writing",
+    "math",
+    "engagement_min",
+    "risk_dyslexia",
+    "risk_dysgraphia",
+    "risk_dyscalculia",
+    "risk_adhd"
+  ]
+}
