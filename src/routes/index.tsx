@@ -79,8 +79,10 @@ const testimonials = [
 ];
 
 function Home() {
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
     <SiteLayout>
+      <DemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
       {/* HERO */}
       <section className="relative overflow-hidden rounded-3xl px-4 py-12 sm:py-20">
         <div className="grid items-center gap-10 lg:grid-cols-2">
@@ -99,7 +101,7 @@ function Home() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/assessment"><Button variant="hero" size="xl"><Rocket className="h-4 w-4" /> Start Assessment</Button></Link>
-              <Button variant="glass" size="xl"><Play className="h-4 w-4" /> Watch Demo</Button>
+              <Button variant="glass" size="xl" onClick={() => setDemoOpen(true)}><Play className="h-4 w-4" /> Watch Demo</Button>
             </div>
             <div className="mt-8 grid max-w-md grid-cols-3 gap-3">
               {[{n:"4",l:"Disorders"},{n:"6+",l:"Mini-games"},{n:"95%",l:"Avg. recall"}].map((s) => (
