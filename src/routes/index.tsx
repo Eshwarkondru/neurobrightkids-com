@@ -9,8 +9,10 @@ import {
   PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import heroAi from "@/assets/hero-ai.png";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SiteLayout } from "@/components/site/Layout";
+import { DemoDialog } from "@/components/site/DemoDialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
