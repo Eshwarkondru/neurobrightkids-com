@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, Trophy, RotateCcw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type GameKey =
   | "mirror"
@@ -28,11 +29,15 @@ export function GamePlayer({
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<null | "ok" | "no">(null);
+  const [saved, setSaved] = useState(false);
+  const [sessionSeed, setSessionSeed] = useState(0);
 
   const reset = () => {
     setRound(0);
     setScore(0);
     setFeedback(null);
+    setSaved(false);
+    setSessionSeed(Math.floor(Math.random() * 1000));
   };
 
   useEffect(() => {
@@ -50,6 +55,22 @@ export function GamePlayer({
   };
 
   const done = round >= ROUNDS;
+
+  useEffect(() => {
+    if (!done || saved) return;
+    setSaved(true);
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      void supabase.from("game_sessions").insert({
+        user_id: data.user.id,
+        child_profile_id: localStorage.getItem("neurolearn_active_child") || null,
+        game_key: game,
+        score,
+        rounds: ROUNDS,
+        responses: [],
+      });
+    });
+  }, [done, game, saved, score]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,7 +98,7 @@ export function GamePlayer({
           </div>
         ) : (
           <div className="relative min-h-[260px]">
-            <GameRound key={`${game}-${round}`} game={game} round={round} onAnswer={onAnswer} disabled={feedback !== null} />
+            <GameRound key={`${game}-${round}`} game={game} round={round} seed={sessionSeed} onAnswer={onAnswer} disabled={feedback !== null} />
             {feedback && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 {feedback === "ok" ? (
@@ -94,28 +115,27 @@ export function GamePlayer({
   );
 }
 
-function GameRound({ game, round, onAnswer, disabled }: { game: GameKey; round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function GameRound({ game, round, seed, onAnswer, disabled }: { game: GameKey; round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   switch (game) {
     case "mirror":
-      return <MirrorLetter round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <MirrorLetter round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
     case "phonics":
-      return <Phonics round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <Phonics round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
     case "memory":
-      return <MemoryQuest round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <MemoryQuest round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
     case "focus":
-      return <FocusChallenge round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <FocusChallenge round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
     case "math":
-      return <MathPuzzle round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <MathPuzzle round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
     case "shape":
-      return <ShapeRecognition round={round} onAnswer={onAnswer} disabled={disabled} />;
+      return <ShapeRecognition round={round} seed={seed} onAnswer={onAnswer} disabled={disabled} />;
   }
 }
 
-const rand = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const pick = <T,>(a: readonly T[], index: number) => a[index % a.length];
 
 /* ---------- Mirror Letter ---------- */
-function MirrorLetter({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MirrorLetter({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const { letter, mirrored } = useMemo(() => {
     const challenges = [
       { letter: "b", mirrored: true },
@@ -125,8 +145,8 @@ function MirrorLetter({ round, onAnswer, disabled }: { round: number; onAnswer: 
       { letter: "R", mirrored: true },
       { letter: "F", mirrored: false },
     ];
-    return pick(challenges, round);
-  }, [round]);
+    return pick(challenges, round + seed);
+  }, [round, seed]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Is this letter mirrored (backwards)?</p>
@@ -145,17 +165,17 @@ function MirrorLetter({ round, onAnswer, disabled }: { round: number; onAnswer: 
 }
 
 /* ---------- Phonics ---------- */
-function Phonics({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
-  const words = ["cat", "dog", "fish", "bear", "tree", "sun"];
+function Phonics({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+  const words = ["cat", "dog", "fish", "bear", "tree", "sun", "moon", "kite", "lamp", "zebra"];
   const { word, options, answer } = useMemo(() => {
-    const w = pick(words, round);
+    const w = pick(words, round + seed);
     const first = w[0].toUpperCase();
     const distractors = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter((c) => c !== first);
-    const opts = [first, distractors[(round * 3) % distractors.length], distractors[(round * 5 + 7) % distractors.length]]
+    const opts = [first, distractors[((round + seed) * 3) % distractors.length], distractors[((round + seed) * 5 + 7) % distractors.length]]
       .filter((v, i, arr) => arr.indexOf(v) === i)
-      .sort((a, b) => ((a.charCodeAt(0) + round) % 3) - ((b.charCodeAt(0) + round) % 3));
+      .sort((a, b) => ((a.charCodeAt(0) + round + seed) % 3) - ((b.charCodeAt(0) + round + seed) % 3));
     return { word: w, options: opts, answer: first };
-  }, [round]);
+  }, [round, seed]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Which letter does this word start with?</p>
@@ -172,7 +192,7 @@ function Phonics({ round, onAnswer, disabled }: { round: number; onAnswer: (c: b
 }
 
 /* ---------- Memory Quest ---------- */
-function MemoryQuest({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MemoryQuest({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const colors = ["bg-rose-500", "bg-emerald-500", "bg-sky-500", "bg-amber-500"];
   const sequence = useMemo(() => {
     const sequences = [
@@ -183,8 +203,8 @@ function MemoryQuest({ round, onAnswer, disabled }: { round: number; onAnswer: (
       [0, 3, 1, 1, 2],
       [2, 0, 3, 1, 0],
     ];
-    return pick(sequences, round);
-  }, [round]);
+    return pick(sequences, round + seed);
+  }, [round, seed]);
   const [showIdx, setShowIdx] = useState(0);
   const [phase, setPhase] = useState<"show" | "input">("show");
   const [input, setInput] = useState<number[]>([]);
@@ -227,7 +247,7 @@ function MemoryQuest({ round, onAnswer, disabled }: { round: number; onAnswer: (
 }
 
 /* ---------- Focus Challenge ---------- */
-function FocusChallenge({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function FocusChallenge({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const items = useMemo(() => {
     const shapes = ["●", "■", "▲"];
     const colors = ["text-rose-500", "text-emerald-500", "text-sky-500", "text-amber-500"];
@@ -236,12 +256,12 @@ function FocusChallenge({ round, onAnswer, disabled }: { round: number; onAnswer
       color: "text-rose-500",
     }));
     arr.forEach((item, index) => {
-      item.shape = shapes[(index + round) % shapes.length];
-      item.color = colors[(index * 2 + round) % colors.length];
+      item.shape = shapes[(index + round + seed) % shapes.length];
+      item.color = colors[(index * 2 + round + seed) % colors.length];
     });
-    arr[(round * 5 + 2) % 12] = { shape: "★", color: "text-yellow-400" };
+    arr[((round + seed) * 5 + 2) % 12] = { shape: "★", color: "text-yellow-400" };
     return arr;
-  }, [round]);
+  }, [round, seed]);
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <p className="text-sm text-muted-foreground">Tap the yellow star ★ as fast as you can!</p>
@@ -262,7 +282,7 @@ function FocusChallenge({ round, onAnswer, disabled }: { round: number; onAnswer
 }
 
 /* ---------- Math Puzzle ---------- */
-function MathPuzzle({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MathPuzzle({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const { a, b, op, answer, options } = useMemo(() => {
     const problems = [
       { a: 4, b: 3, op: "+" as const },
@@ -272,12 +292,12 @@ function MathPuzzle({ round, onAnswer, disabled }: { round: number; onAnswer: (c
       { a: 10, b: 7, op: "-" as const },
       { a: 3, b: 5, op: "×" as const },
     ];
-    const { a, b, op } = pick(problems, round);
+    const { a, b, op } = pick(problems, round + seed);
     const ans = op === "+" ? a + b : op === "-" ? a - b : a * b;
-    const variants = [ans, ans + round + 1, Math.max(0, ans - round - 2)];
-    const options = Array.from(new Set(variants)).sort((x, y) => ((x + round) % 3) - ((y + round) % 3));
+    const variants = [ans, ans + ((round + seed) % 4) + 1, Math.max(0, ans - ((round + seed) % 5) - 2)];
+    const options = Array.from(new Set(variants)).sort((x, y) => ((x + round + seed) % 3) - ((y + round + seed) % 3));
     return { a, b, op, answer: ans, options };
-  }, [round]);
+  }, [round, seed]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Solve the problem:</p>
@@ -294,14 +314,14 @@ function MathPuzzle({ round, onAnswer, disabled }: { round: number; onAnswer: (c
 }
 
 /* ---------- Shape Recognition ---------- */
-function ShapeRecognition({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function ShapeRecognition({ round, seed, onAnswer, disabled }: { round: number; seed: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const shapes = ["circle", "square", "triangle", "diamond"] as const;
   const { target, grid } = useMemo(() => {
-    const t = pick(shapes, round);
-    const g = Array.from({ length: 6 }, (_, index) => pick(shapes, index + round + 1));
-    g[(round * 2 + 1) % 6] = t;
+    const t = pick(shapes, round + seed);
+    const g = Array.from({ length: 6 }, (_, index) => pick(shapes, index + round + seed + 1));
+    g[((round + seed) * 2 + 1) % 6] = t;
     return { target: t, grid: g };
-  }, [round]);
+  }, [round, seed]);
   const renderShape = (s: typeof shapes[number]) => {
     const base = "h-12 w-12 mx-auto";
     if (s === "circle") return <div className={`${base} rounded-full bg-primary`} />;

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Brain, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Brain, LogIn, Menu, UserCircle, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -19,6 +20,14 @@ const nav = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(!!session));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="mx-auto max-w-7xl px-4 pt-4">
@@ -47,6 +56,12 @@ export function Header() {
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Link to="/auth" className="hidden sm:block">
+              <Button variant={signedIn ? "glass" : "hero"} size="sm">
+                {signedIn ? <UserCircle className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {signedIn ? "Account" : "Login"}
+              </Button>
+            </Link>
             <Link to="/assessment" className="hidden sm:block">
               <Button variant="hero" size="sm">Start Assessment</Button>
             </Link>
@@ -58,6 +73,14 @@ export function Header() {
         {open && (
           <div className="glass-strong mt-2 rounded-2xl p-3 lg:hidden">
             <div className="grid grid-cols-2 gap-1">
+              <Link
+                to="/auth"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                activeProps={{ className: "bg-secondary text-foreground" }}
+              >
+                {signedIn ? "Account" : "Login"}
+              </Link>
               {nav.map((n) => (
                 <Link
                   key={n.to}
