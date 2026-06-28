@@ -14,16 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      child_profiles: {
+        Row: {
+          age: number
+          child_name: string
+          created_at: string
+          grade: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          age: number
+          child_name: string
+          created_at?: string
+          grade?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          age?: number
+          child_name?: string
+          created_at?: string
+          grade?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_sessions: {
+        Row: {
+          child_profile_id: string | null
+          completed_at: string
+          created_at: string
+          game_key: string
+          id: string
+          responses: Json
+          rounds: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          child_profile_id?: string | null
+          completed_at?: string
+          created_at?: string
+          game_key: string
+          id?: string
+          responses?: Json
+          rounds: number
+          score: number
+          user_id: string
+        }
+        Update: {
+          child_profile_id?: string | null
+          completed_at?: string
+          created_at?: string
+          game_key?: string
+          id?: string
+          responses?: Json
+          rounds?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          organization: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          organization?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          organization?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "child" | "parent" | "teacher" | "special_educator" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +283,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["child", "parent", "teacher", "special_educator", "admin"],
+    },
   },
 } as const
