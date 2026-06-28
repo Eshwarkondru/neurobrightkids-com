@@ -336,8 +336,7 @@ function AuthPage() {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  const id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  return <div className="space-y-2"><Label htmlFor={id}>{label}</Label>{children}</div>;
+  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
 }
 
 function PasswordField({ label, value, onChange, show, setShow }: { label: string; value: string; onChange: (value: string) => void; show: boolean; setShow: (value: boolean) => void }) {
