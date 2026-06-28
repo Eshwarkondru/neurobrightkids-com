@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -40,6 +40,7 @@ export function GamePlayer({
   }, [open, game]);
 
   const onAnswer = (correct: boolean) => {
+    if (feedback) return;
     setFeedback(correct ? "ok" : "no");
     if (correct) setScore((s) => s + 1);
     setTimeout(() => {
@@ -76,7 +77,7 @@ export function GamePlayer({
           </div>
         ) : (
           <div className="relative min-h-[260px]">
-            <GameRound key={`${game}-${round}`} game={game} onAnswer={onAnswer} disabled={feedback !== null} />
+            <GameRound key={`${game}-${round}`} game={game} round={round} onAnswer={onAnswer} disabled={feedback !== null} />
             {feedback && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                 {feedback === "ok" ? (
@@ -93,31 +94,39 @@ export function GamePlayer({
   );
 }
 
-function GameRound({ game, onAnswer, disabled }: { game: GameKey; onAnswer: (c: boolean) => void; disabled: boolean }) {
+function GameRound({ game, round, onAnswer, disabled }: { game: GameKey; round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   switch (game) {
     case "mirror":
-      return <MirrorLetter onAnswer={onAnswer} disabled={disabled} />;
+      return <MirrorLetter round={round} onAnswer={onAnswer} disabled={disabled} />;
     case "phonics":
-      return <Phonics onAnswer={onAnswer} disabled={disabled} />;
+      return <Phonics round={round} onAnswer={onAnswer} disabled={disabled} />;
     case "memory":
-      return <MemoryQuest onAnswer={onAnswer} disabled={disabled} />;
+      return <MemoryQuest round={round} onAnswer={onAnswer} disabled={disabled} />;
     case "focus":
-      return <FocusChallenge onAnswer={onAnswer} disabled={disabled} />;
+      return <FocusChallenge round={round} onAnswer={onAnswer} disabled={disabled} />;
     case "math":
-      return <MathPuzzle onAnswer={onAnswer} disabled={disabled} />;
+      return <MathPuzzle round={round} onAnswer={onAnswer} disabled={disabled} />;
     case "shape":
-      return <ShapeRecognition onAnswer={onAnswer} disabled={disabled} />;
+      return <ShapeRecognition round={round} onAnswer={onAnswer} disabled={disabled} />;
   }
 }
 
 const rand = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+const pick = <T,>(a: readonly T[], index: number) => a[index % a.length];
 
 /* ---------- Mirror Letter ---------- */
-function MirrorLetter({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MirrorLetter({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const { letter, mirrored } = useMemo(() => {
-    const letters = ["b", "d", "p", "q", "R", "E", "S", "N", "J", "F"];
-    return { letter: rand(letters), mirrored: Math.random() < 0.5 };
-  }, []);
+    const challenges = [
+      { letter: "b", mirrored: true },
+      { letter: "d", mirrored: false },
+      { letter: "p", mirrored: true },
+      { letter: "q", mirrored: false },
+      { letter: "R", mirrored: true },
+      { letter: "F", mirrored: false },
+    ];
+    return pick(challenges, round);
+  }, [round]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Is this letter mirrored (backwards)?</p>
@@ -136,15 +145,17 @@ function MirrorLetter({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; 
 }
 
 /* ---------- Phonics ---------- */
-function Phonics({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
-  const words = ["cat", "dog", "fish", "bear", "tree", "sun", "moon", "bird", "apple", "milk"];
+function Phonics({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
+  const words = ["cat", "dog", "fish", "bear", "tree", "sun"];
   const { word, options, answer } = useMemo(() => {
-    const w = rand(words);
+    const w = pick(words, round);
     const first = w[0].toUpperCase();
-    const distractors = "BCDFGHJKLMNPRSTW".split("").filter((c) => c !== first);
-    const opts = [first, rand(distractors), rand(distractors)].sort(() => Math.random() - 0.5);
+    const distractors = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter((c) => c !== first);
+    const opts = [first, distractors[(round * 3) % distractors.length], distractors[(round * 5 + 7) % distractors.length]]
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .sort((a, b) => ((a.charCodeAt(0) + round) % 3) - ((b.charCodeAt(0) + round) % 3));
     return { word: w, options: opts, answer: first };
-  }, []);
+  }, [round]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Which letter does this word start with?</p>
@@ -161,9 +172,19 @@ function Phonics({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disab
 }
 
 /* ---------- Memory Quest ---------- */
-function MemoryQuest({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MemoryQuest({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const colors = ["bg-rose-500", "bg-emerald-500", "bg-sky-500", "bg-amber-500"];
-  const sequence = useMemo(() => Array.from({ length: 4 }, () => Math.floor(Math.random() * 4)), []);
+  const sequence = useMemo(() => {
+    const sequences = [
+      [0, 2, 1],
+      [3, 1, 0, 2],
+      [2, 2, 3, 1],
+      [1, 0, 3, 2, 0],
+      [0, 3, 1, 1, 2],
+      [2, 0, 3, 1, 0],
+    ];
+    return pick(sequences, round);
+  }, [round]);
   const [showIdx, setShowIdx] = useState(0);
   const [phase, setPhase] = useState<"show" | "input">("show");
   const [input, setInput] = useState<number[]>([]);
@@ -206,15 +227,21 @@ function MemoryQuest({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; d
 }
 
 /* ---------- Focus Challenge ---------- */
-function FocusChallenge({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
+function FocusChallenge({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const items = useMemo(() => {
+    const shapes = ["●", "■", "▲"];
+    const colors = ["text-rose-500", "text-emerald-500", "text-sky-500", "text-amber-500"];
     const arr = Array.from({ length: 12 }, () => ({
-      shape: rand(["●", "■", "▲"]),
-      color: rand(["text-rose-500", "text-emerald-500", "text-sky-500", "text-amber-500"]),
+      shape: "●",
+      color: "text-rose-500",
     }));
-    arr[Math.floor(Math.random() * 12)] = { shape: "★", color: "text-yellow-400" };
+    arr.forEach((item, index) => {
+      item.shape = shapes[(index + round) % shapes.length];
+      item.color = colors[(index * 2 + round) % colors.length];
+    });
+    arr[(round * 5 + 2) % 12] = { shape: "★", color: "text-yellow-400" };
     return arr;
-  }, []);
+  }, [round]);
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <p className="text-sm text-muted-foreground">Tap the yellow star ★ as fast as you can!</p>
@@ -235,16 +262,22 @@ function FocusChallenge({ onAnswer, disabled }: { onAnswer: (c: boolean) => void
 }
 
 /* ---------- Math Puzzle ---------- */
-function MathPuzzle({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
+function MathPuzzle({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const { a, b, op, answer, options } = useMemo(() => {
-    const op = rand(["+", "-", "×"] as const);
-    const a = Math.floor(Math.random() * 10) + 1;
-    const b = Math.floor(Math.random() * 10) + 1;
+    const problems = [
+      { a: 4, b: 3, op: "+" as const },
+      { a: 9, b: 5, op: "-" as const },
+      { a: 6, b: 2, op: "×" as const },
+      { a: 8, b: 4, op: "+" as const },
+      { a: 10, b: 7, op: "-" as const },
+      { a: 3, b: 5, op: "×" as const },
+    ];
+    const { a, b, op } = pick(problems, round);
     const ans = op === "+" ? a + b : op === "-" ? a - b : a * b;
-    const set = new Set<number>([ans]);
-    while (set.size < 3) set.add(ans + (Math.floor(Math.random() * 7) - 3));
-    return { a, b, op, answer: ans, options: Array.from(set).sort(() => Math.random() - 0.5) };
-  }, []);
+    const variants = [ans, ans + round + 1, Math.max(0, ans - round - 2)];
+    const options = Array.from(new Set(variants)).sort((x, y) => ((x + round) % 3) - ((y + round) % 3));
+    return { a, b, op, answer: ans, options };
+  }, [round]);
   return (
     <div className="flex flex-col items-center gap-6 py-4">
       <p className="text-sm text-muted-foreground">Solve the problem:</p>
@@ -261,14 +294,14 @@ function MathPuzzle({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; di
 }
 
 /* ---------- Shape Recognition ---------- */
-function ShapeRecognition({ onAnswer, disabled }: { onAnswer: (c: boolean) => void; disabled: boolean }) {
+function ShapeRecognition({ round, onAnswer, disabled }: { round: number; onAnswer: (c: boolean) => void; disabled: boolean }) {
   const shapes = ["circle", "square", "triangle", "diamond"] as const;
   const { target, grid } = useMemo(() => {
-    const t = rand([...shapes]);
-    const g = Array.from({ length: 6 }, () => rand([...shapes]));
-    if (!g.includes(t)) g[Math.floor(Math.random() * 6)] = t;
+    const t = pick(shapes, round);
+    const g = Array.from({ length: 6 }, (_, index) => pick(shapes, index + round + 1));
+    g[(round * 2 + 1) % 6] = t;
     return { target: t, grid: g };
-  }, []);
+  }, [round]);
   const renderShape = (s: typeof shapes[number]) => {
     const base = "h-12 w-12 mx-auto";
     if (s === "circle") return <div className={`${base} rounded-full bg-primary`} />;
