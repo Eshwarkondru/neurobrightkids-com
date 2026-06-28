@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, Trophy, RotateCcw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type GameKey =
   | "mirror"
@@ -28,11 +29,13 @@ export function GamePlayer({
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<null | "ok" | "no">(null);
+  const [saved, setSaved] = useState(false);
 
   const reset = () => {
     setRound(0);
     setScore(0);
     setFeedback(null);
+    setSaved(false);
   };
 
   useEffect(() => {
@@ -50,6 +53,21 @@ export function GamePlayer({
   };
 
   const done = round >= ROUNDS;
+
+  useEffect(() => {
+    if (!done || saved) return;
+    setSaved(true);
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      void supabase.from("game_sessions").insert({
+        user_id: data.user.id,
+        game_key: game,
+        score,
+        rounds: ROUNDS,
+        responses: [],
+      });
+    });
+  }, [done, game, saved, score]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
