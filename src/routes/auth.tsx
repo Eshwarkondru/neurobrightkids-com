@@ -142,14 +142,15 @@ function AuthPage() {
         organization: organization.trim() || null,
       };
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload, { onConflict: "user_id" });
-      const { error: roleError } = await supabase.from("user_roles").upsert({ user_id: userId, role: selectedRole }, { onConflict: "user_id,role" });
+      const { error: roleError } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
       if (selectedRole === "child" && childName.trim()) {
-        await supabase.from("child_profiles").insert({
+        const { data: newChild } = await supabase.from("child_profiles").insert({
           owner_id: userId,
           child_name: childName.trim(),
           age: Number(childAge),
           grade: childGrade.trim() || null,
-        });
+        }).select("id").maybeSingle();
+        if (newChild?.id) localStorage.setItem("neurolearn_active_child", newChild.id);
       }
       if (profileError || roleError) toast.error(profileError?.message || roleError?.message || "Profile setup failed.");
     }
