@@ -59,17 +59,30 @@ export function GamePlayer({
   useEffect(() => {
     if (!done || saved) return;
     setSaved(true);
-    supabase.auth.getUser().then(({ data }) => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
       if (!data.user) return;
-      void supabase.from("game_sessions").insert({
+      const candidate = localStorage.getItem("neurolearn_active_child");
+      let childProfileId: string | null = null;
+      if (candidate) {
+        const { data: owned } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("id", candidate)
+          .eq("owner_id", data.user.id)
+          .maybeSingle();
+        childProfileId = owned?.id ?? null;
+        if (!childProfileId) localStorage.removeItem("neurolearn_active_child");
+      }
+      await supabase.from("game_sessions").insert({
         user_id: data.user.id,
-        child_profile_id: localStorage.getItem("neurolearn_active_child") || null,
+        child_profile_id: childProfileId,
         game_key: game,
         score,
         rounds: ROUNDS,
         responses: [],
       });
-    });
+    })();
   }, [done, game, saved, score]);
 
   return (
