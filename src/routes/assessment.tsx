@@ -94,10 +94,10 @@ function Assessment() {
             <div className="mt-6 text-center">
               <div className="gradient-bg mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-glow"><CheckCircle2 className="h-7 w-7" /></div>
               <h2 className="mt-4 text-2xl font-bold">All done!</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Your responses are being analyzed by our transformer model.</p>
+              <p className="mt-2 text-sm text-muted-foreground">A new personalized report has been generated and linked to your child's profile.</p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link to="/dashboard"><Button variant="hero" size="lg">View results <ArrowRight className="h-4 w-4" /></Button></Link>
-                <Button variant="glass" size="lg" onClick={() => { setI(0); setAnswers([]); }}>Restart</Button>
+                <Link to="/reports"><Button variant="hero" size="lg">View reports <ArrowRight className="h-4 w-4" /></Button></Link>
+                <Button variant="glass" size="lg" onClick={() => { setI(0); setAnswers([]); setSaved(false); }}>Restart</Button>
               </div>
             </div>
           )}
