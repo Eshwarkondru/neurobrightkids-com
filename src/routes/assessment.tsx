@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Brain, Calculator, CheckCircle2, PenTool, Target, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/assessment")({
   head: () => ({ meta: [{ title: "Assessment — NeuroLearn AI" }, { name: "description", content: "Gamified multi-disorder screening assessment for children." }] }),
