@@ -23,6 +23,7 @@ const steps = [
 function Assessment() {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [saved, setSaved] = useState(false);
   const done = i >= steps.length;
   const progress = useMemo(() => (i / steps.length) * 100, [i]);
 
@@ -30,6 +31,40 @@ function Assessment() {
     setAnswers([...answers, idx]);
     setI(i + 1);
   };
+
+  useEffect(() => {
+    if (!done || saved) return;
+    setSaved(true);
+    void (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.info("Sign in to save your personalized report.");
+        return;
+      }
+      const score = answers.reduce((acc, ans, idx) => acc + (ans === steps[idx].answer ? 1 : 0), 0);
+      const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
+      let childProfileId: string | null = null;
+      if (candidate) {
+        const { data: owned } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("id", candidate)
+          .eq("owner_id", userData.user.id)
+          .maybeSingle();
+        childProfileId = owned?.id ?? null;
+      }
+      const { error } = await supabase.from("game_sessions").insert({
+        user_id: userData.user.id,
+        child_profile_id: childProfileId,
+        game_key: "assessment",
+        score,
+        rounds: steps.length,
+        responses: answers as unknown as never,
+      });
+      if (error) toast.error("Could not save report: " + error.message);
+      else toast.success("New personalized report generated!");
+    })();
+  }, [done, saved, answers]);
 
   return (
     <SiteLayout>
