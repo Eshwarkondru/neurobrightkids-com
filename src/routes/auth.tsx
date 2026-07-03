@@ -265,21 +265,8 @@ function AuthPage() {
           </section>
         </div>
       ) : (
-        <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="glass-strong rounded-3xl p-6">
-            <div className="gradient-bg mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-glow">
-              <Brain className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl font-bold">Where is username and password?</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Username is your <b>email address</b>. Password is created during Sign Up. Choose Child, Parent, Teacher, or Special Educator role while creating the account.
-            </p>
-            <div className="mt-5 space-y-3 text-sm">
-              <Step icon={UserPlus} title="1. Sign Up" text="Create a new child/parent/teacher account." />
-              <Step icon={LogIn} title="2. Sign In" text="Use email username + password." />
-              <Step icon={Gamepad2} title="3. Play Games" text="Scores are saved after login." />
-            </div>
-          </section>
+        <div className="mx-auto max-w-xl">
+
 
           <section className="glass-strong rounded-3xl p-6">
             <Tabs value={mode} onValueChange={setMode}>
