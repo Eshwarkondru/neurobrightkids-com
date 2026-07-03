@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Brain, Calculator, CheckCircle2, PenTool, Target, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/assessment")({
   head: () => ({ meta: [{ title: "Assessment — NeuroLearn AI" }, { name: "description", content: "Gamified multi-disorder screening assessment for children." }] }),
@@ -21,6 +23,7 @@ const steps = [
 function Assessment() {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [saved, setSaved] = useState(false);
   const done = i >= steps.length;
   const progress = useMemo(() => (i / steps.length) * 100, [i]);
 
@@ -28,6 +31,40 @@ function Assessment() {
     setAnswers([...answers, idx]);
     setI(i + 1);
   };
+
+  useEffect(() => {
+    if (!done || saved) return;
+    setSaved(true);
+    void (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.info("Sign in to save your personalized report.");
+        return;
+      }
+      const score = answers.reduce((acc, ans, idx) => acc + (ans === steps[idx].answer ? 1 : 0), 0);
+      const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
+      let childProfileId: string | null = null;
+      if (candidate) {
+        const { data: owned } = await supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("id", candidate)
+          .eq("owner_id", userData.user.id)
+          .maybeSingle();
+        childProfileId = owned?.id ?? null;
+      }
+      const { error } = await supabase.from("game_sessions").insert({
+        user_id: userData.user.id,
+        child_profile_id: childProfileId,
+        game_key: "assessment",
+        score,
+        rounds: steps.length,
+        responses: answers as unknown as never,
+      });
+      if (error) toast.error("Could not save report: " + error.message);
+      else toast.success("New personalized report generated!");
+    })();
+  }, [done, saved, answers]);
 
   return (
     <SiteLayout>
@@ -57,10 +94,10 @@ function Assessment() {
             <div className="mt-6 text-center">
               <div className="gradient-bg mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-glow"><CheckCircle2 className="h-7 w-7" /></div>
               <h2 className="mt-4 text-2xl font-bold">All done!</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Your responses are being analyzed by our transformer model.</p>
+              <p className="mt-2 text-sm text-muted-foreground">A new personalized report has been generated and linked to your child's profile.</p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link to="/dashboard"><Button variant="hero" size="lg">View results <ArrowRight className="h-4 w-4" /></Button></Link>
-                <Button variant="glass" size="lg" onClick={() => { setI(0); setAnswers([]); }}>Restart</Button>
+                <Link to="/reports"><Button variant="hero" size="lg">View reports <ArrowRight className="h-4 w-4" /></Button></Link>
+                <Button variant="glass" size="lg" onClick={() => { setI(0); setAnswers([]); setSaved(false); }}>Restart</Button>
               </div>
             </div>
           )}
