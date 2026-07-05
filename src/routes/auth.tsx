@@ -157,7 +157,10 @@ function AuthPage() {
         }).select("id").maybeSingle();
         if (newChild?.id) localStorage.setItem("neurolearn_active_child", newChild.id);
       }
-      if (profileError || roleError) toast.error(profileError?.message || roleError?.message || "Profile setup failed.");
+      if (profileError || roleError) {
+        console.error("profile/role setup failed", { profileError, roleError });
+        toast.error("Profile setup failed. Please try again.");
+      }
     }
 
     setLoading(false);
