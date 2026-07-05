@@ -1,112 +1,141 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, BookOpen, Brain, Calculator, CheckCircle2, PenTool, Target, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ASSESSMENT_QUESTIONS, computeAssessment, severityColor, type AssessmentResult } from "@/lib/assessment";
 
 export const Route = createFileRoute("/assessment")({
-  head: () => ({ meta: [{ title: "Assessment — NeuroLearn AI" }, { name: "description", content: "Gamified multi-disorder screening assessment for children." }] }),
+  head: () => ({ meta: [{ title: "Assessment — NeuroLearn AI" }, { name: "description", content: "Adaptive multi-disorder screening assessment for children." }] }),
   component: Assessment,
 });
-
-const steps = [
-  { key: "reading", icon: BookOpen, title: "Reading & Phonics", q: "Tap the word that matches the sound 'cat'", options: ["bat", "cat", "rat", "hat"], answer: 1 },
-  { key: "writing", icon: PenTool, title: "Letter Recognition", q: "Which letter is the mirror of 'b'?", options: ["p", "d", "q", "g"], answer: 1 },
-  { key: "math", icon: Calculator, title: "Number Sense", q: "Which group has more dots? ●●●●  vs  ●●●", options: ["Left", "Right", "Same", "Not sure"], answer: 0 },
-  { key: "focus", icon: Target, title: "Focus Span", q: "Find the odd one: 🔵 🔵 🔴 🔵", options: ["1st", "2nd", "3rd", "4th"], answer: 2 },
-  { key: "memory", icon: Brain, title: "Memory", q: "Earlier we showed: 3, 7, 2. Which sequence was it?", options: ["3,2,7", "7,3,2", "3,7,2", "2,7,3"], answer: 2 },
-];
 
 function Assessment() {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const done = i >= steps.length;
-  const progress = useMemo(() => (i / steps.length) * 100, [i]);
+  const [result, setResult] = useState<AssessmentResult | null>(null);
+  const total = ASSESSMENT_QUESTIONS.length;
+  const done = i >= total;
+  const progress = useMemo(() => (i / total) * 100, [i, total]);
 
   const select = (idx: number) => {
-    setAnswers([...answers, idx]);
-    setI(i + 1);
+    setAnswers((prev) => [...prev, idx]);
+    setI((prev) => prev + 1);
   };
 
   useEffect(() => {
-    if (!done || saved) return;
-    setSaved(true);
+    if (!done || saved || saving) return;
+    setSaving(true);
     void (async () => {
+      const computed = computeAssessment(answers);
+      setResult(computed);
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         toast.info("Sign in to save your personalized report.");
+        setSaved(true); setSaving(false);
         return;
       }
-      const score = answers.reduce((acc, ans, idx) => acc + (ans === steps[idx].answer ? 1 : 0), 0);
       const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
       let childProfileId: string | null = null;
       if (candidate) {
         const { data: owned } = await supabase
-          .from("child_profiles")
-          .select("id")
-          .eq("id", candidate)
-          .eq("owner_id", userData.user.id)
-          .maybeSingle();
+          .from("child_profiles").select("id")
+          .eq("id", candidate).eq("owner_id", userData.user.id).maybeSingle();
         childProfileId = owned?.id ?? null;
       }
+      const payload = {
+        answers,
+        scores: computed.results,
+        highest: computed.highest,
+        strengths: computed.strengths,
+        weaknesses: computed.weaknesses,
+        recommendations: computed.recommendations,
+        therapist: computed.therapist,
+        recommendedGames: computed.recommendedGames,
+      };
       const { error } = await supabase.from("game_sessions").insert({
         user_id: userData.user.id,
         child_profile_id: childProfileId,
         game_key: "assessment",
-        score,
-        rounds: steps.length,
-        responses: answers as unknown as never,
+        score: computed.totalCorrect,
+        rounds: computed.totalQuestions,
+        responses: payload as unknown as never,
       });
       if (error) {
         console.error("game_sessions insert failed", error);
         toast.error("Could not save report. Please try again.");
+      } else {
+        toast.success("New personalized report generated!");
       }
-      else toast.success("New personalized report generated!");
+      setSaved(true); setSaving(false);
     })();
-  }, [done, saved, answers]);
+  }, [done, saved, saving, answers]);
+
+  const restart = () => { setI(0); setAnswers([]); setSaved(false); setResult(null); };
+  const current = ASSESSMENT_QUESTIONS[i];
 
   return (
     <SiteLayout>
-      <PageHero eyebrow="Adaptive screening" title="Begin your assessment" subtitle="A short, playful set of tasks. Our AI listens to patterns, not just answers." />
+      <PageHero eyebrow="Adaptive screening" title="Begin your assessment" subtitle="15 short tasks across reading, focus, social, math and memory. Results are calculated instantly." />
       <div className="mx-auto max-w-2xl">
         <div className="glass-strong rounded-3xl p-6 sm:p-8">
           <Progress value={done ? 100 : progress} className="h-2" />
-          <div className="mt-2 text-xs text-muted-foreground">Step {Math.min(i + 1, steps.length)} of {steps.length}</div>
+          <div className="mt-2 text-xs text-muted-foreground">Step {Math.min(i + 1, total)} of {total}</div>
+
           {!done ? (
             <div className="mt-6">
-              <div className="flex items-center gap-3">
-                <div className="gradient-bg flex h-10 w-10 items-center justify-center rounded-2xl text-primary-foreground shadow-glow">
-                  {(() => { const Icon = steps[i].icon; return <Icon className="h-5 w-5" />; })()}
-                </div>
-                <div className="text-sm font-semibold text-muted-foreground">{steps[i].title}</div>
-              </div>
-              <h2 className="mt-4 text-xl font-bold sm:text-2xl">{steps[i].q}</h2>
+              <div className="text-sm font-semibold text-muted-foreground">{current.title}</div>
+              <h2 className="mt-3 text-xl font-bold sm:text-2xl">{current.q}</h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {steps[i].options.map((o, idx) => (
-                  <button key={o} onClick={() => select(idx)} className="glass rounded-2xl p-4 text-left text-base font-medium transition hover:-translate-y-0.5 hover:bg-card hover:shadow-glow">
+                {current.options.map((o, idx) => (
+                  <button key={o + idx} onClick={() => select(idx)} className="glass rounded-2xl p-4 text-left text-base font-medium transition hover:-translate-y-0.5 hover:bg-card hover:shadow-glow">
                     {o}
                   </button>
                 ))}
               </div>
             </div>
+          ) : saving || !result ? (
+            <div className="mt-8 text-center">
+              <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+              <p className="mt-4 text-sm text-muted-foreground">Analyzing responses and generating your personalized report…</p>
+            </div>
           ) : (
-            <div className="mt-6 text-center">
-              <div className="gradient-bg mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-glow"><CheckCircle2 className="h-7 w-7" /></div>
-              <h2 className="mt-4 text-2xl font-bold">All done!</h2>
-              <p className="mt-2 text-sm text-muted-foreground">A new personalized report has been generated and linked to your child's profile.</p>
+            <div className="mt-6">
+              <div className="text-center">
+                <div className="gradient-bg mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground shadow-glow"><CheckCircle2 className="h-7 w-7" /></div>
+                <h2 className="mt-4 text-2xl font-bold">Assessment complete</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Highest indicator: <span className="font-semibold" style={{ color: severityColor(result.highest.severity) }}>{result.highest.label} · {result.highest.percent}% · {result.highest.severity}</span>
+                </p>
+              </div>
+              <div className="mt-6 space-y-3">
+                {result.results.map((r) => (
+                  <div key={r.disorder}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{r.label}</span>
+                      <span className="font-semibold" style={{ color: severityColor(r.severity) }}>{r.percent}% · {r.severity}</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${r.percent}%`, background: severityColor(r.severity) }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link to="/reports"><Button variant="hero" size="lg">View reports <ArrowRight className="h-4 w-4" /></Button></Link>
-                <Button variant="glass" size="lg" onClick={() => { setI(0); setAnswers([]); setSaved(false); }}>Restart</Button>
+                <Link to="/games"><Button variant="glass" size="lg">Recommended games</Button></Link>
+                <Button variant="glass" size="lg" onClick={restart}>Restart</Button>
               </div>
             </div>
           )}
         </div>
         <div className="mt-4 glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
-          <Zap className="mr-1 inline h-3.5 w-3.5 text-primary" /> Demo flow — full assessment includes 6 mini-games & behavioral telemetry.
+          <Zap className="mr-1 inline h-3.5 w-3.5 text-primary" /> Screening only — not a clinical diagnosis.
         </div>
       </div>
     </SiteLayout>
