@@ -61,7 +61,10 @@ function Assessment() {
         rounds: steps.length,
         responses: answers as unknown as never,
       });
-      if (error) toast.error("Could not save report: " + error.message);
+      if (error) {
+        console.error("game_sessions insert failed", error);
+        toast.error("Could not save report. Please try again.");
+      }
       else toast.success("New personalized report generated!");
     })();
   }, [done, saved, answers]);

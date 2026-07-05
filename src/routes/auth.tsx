@@ -100,7 +100,8 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email: signInEmail.trim(), password: signInPassword });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      console.error("signIn failed", error);
+      toast.error("Invalid email or password.");
       return;
     }
     toast.success("Logged in successfully");
@@ -111,7 +112,10 @@ function AuthPage() {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/auth` });
     setLoading(false);
-    if (result.error) toast.error(result.error.message);
+    if (result.error) {
+      console.error("google oauth failed", result.error);
+      toast.error("Google sign-in failed. Please try again.");
+    }
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -129,7 +133,8 @@ function AuthPage() {
     });
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      console.error("signUp failed", error);
+      toast.error("Could not create account. Please try again.");
       return;
     }
 
@@ -152,7 +157,10 @@ function AuthPage() {
         }).select("id").maybeSingle();
         if (newChild?.id) localStorage.setItem("neurolearn_active_child", newChild.id);
       }
-      if (profileError || roleError) toast.error(profileError?.message || roleError?.message || "Profile setup failed.");
+      if (profileError || roleError) {
+        console.error("profile/role setup failed", { profileError, roleError });
+        toast.error("Profile setup failed. Please try again.");
+      }
     }
 
     setLoading(false);
@@ -176,7 +184,8 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      console.error("child_profile insert failed", error);
+      toast.error("Could not add child profile. Please try again.");
       return;
     }
     toast.success("Child profile added");
