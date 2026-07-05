@@ -133,7 +133,8 @@ function AuthPage() {
     });
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      console.error("signUp failed", error);
+      toast.error("Could not create account. Please try again.");
       return;
     }
 
