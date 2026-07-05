@@ -100,7 +100,8 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email: signInEmail.trim(), password: signInPassword });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      console.error("signIn failed", error);
+      toast.error("Invalid email or password.");
       return;
     }
     toast.success("Logged in successfully");
