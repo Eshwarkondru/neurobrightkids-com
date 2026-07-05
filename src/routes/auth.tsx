@@ -112,7 +112,10 @@ function AuthPage() {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/auth` });
     setLoading(false);
-    if (result.error) toast.error(result.error.message);
+    if (result.error) {
+      console.error("google oauth failed", result.error);
+      toast.error("Google sign-in failed. Please try again.");
+    }
   }
 
   async function handleSignUp(e: React.FormEvent) {
