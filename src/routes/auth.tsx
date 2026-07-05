@@ -184,7 +184,8 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      console.error("child_profile insert failed", error);
+      toast.error("Could not add child profile. Please try again.");
       return;
     }
     toast.success("Child profile added");
