@@ -152,7 +152,7 @@ function AuthPage() {
       if (selectedRole === "child") {
         const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
         roleError = error;
-      } else {
+      } else if (selectedRole === "parent" || selectedRole === "teacher" || selectedRole === "special_educator") {
         try {
           await assignPrivilegedRole({ data: { role: selectedRole } });
         } catch (err) {
