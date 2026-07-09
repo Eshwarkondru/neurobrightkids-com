@@ -31,21 +31,28 @@ function Games() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
       const { data } = await supabase
-        .from("game_sessions")
-        .select("responses")
-        .eq("user_id", userData.user.id)
-        .eq("game_key", "assessment")
-        .order("completed_at", { ascending: false })
+        .from("reports")
+        .select("highest_disorder, highest_percent, answers")
+        .eq("parent_id", userData.user.id)
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const answers = (data?.responses as { answers?: number[] } | null)?.answers;
-      if (answers && Array.isArray(answers)) {
+      if (!data) return;
+      const answers = Array.isArray(data.answers) ? (data.answers as unknown as number[]) : null;
+      if (answers && answers.length) {
         const res = computeAssessment(answers);
         setTopDisorder(res.highest.disorder);
         setTopPercent(res.highest.percent);
+        return;
+      }
+      if (data.highest_disorder) {
+        const map: Record<string, Disorder> = { Dyslexia: "dyslexia", ADHD: "adhd", Autism: "autism", Dyscalculia: "dyscalculia", "Working Memory": "memory" };
+        const d = map[data.highest_disorder];
+        if (d) { setTopDisorder(d); setTopPercent(data.highest_percent ?? 0); }
       }
     })();
   }, []);
+
 
   const recommended = topDisorder ? recommendedGamesFor(topDisorder).map((r) => r.key) : [];
   const recommendedGames = recommended
