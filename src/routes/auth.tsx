@@ -14,6 +14,9 @@ import { lovable } from "@/integrations/lovable";
 import type { Enums, Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Login — NeuroLearn AI" },
@@ -22,6 +25,13 @@ export const Route = createFileRoute("/auth")({
   }),
   component: AuthPage,
 });
+
+// Only allow same-origin relative paths as post-login redirect targets.
+function safeNext(next: string | undefined): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
 
 type AppRole = Enums<"app_role">;
 type Profile = Tables<"profiles">;
@@ -106,12 +116,20 @@ function AuthPage() {
       return;
     }
     toast.success("Logged in successfully");
+    const next = safeNext(Route.useSearch.getState?.() ? undefined : undefined);
+    const nextParam = safeNext(new URLSearchParams(window.location.search).get("next") ?? undefined);
+    if (nextParam) {
+      window.location.href = nextParam;
+      return;
+    }
     await navigate({ to: "/games" });
   }
 
   async function handleGoogle() {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/auth` });
+    const nextParam = safeNext(new URLSearchParams(window.location.search).get("next") ?? undefined);
+    const redirectPath = nextParam ?? "/auth";
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}${redirectPath}` });
     setLoading(false);
     if (result.error) {
       console.error("google oauth failed", result.error);
