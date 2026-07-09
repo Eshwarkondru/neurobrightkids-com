@@ -89,6 +89,15 @@ function AuthPage() {
       return;
     }
 
+    // If arrived here from the OAuth consent flow, bounce back once signed in.
+    if (typeof window !== "undefined") {
+      const nextParam = safeNext(new URLSearchParams(window.location.search).get("next") ?? undefined);
+      if (nextParam) {
+        window.location.replace(nextParam);
+        return;
+      }
+    }
+
     const [{ data: profileData }, { data: roleData }, { data: childData }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", user.id).limit(1).maybeSingle(),
