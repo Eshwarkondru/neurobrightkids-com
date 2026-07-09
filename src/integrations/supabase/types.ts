@@ -121,6 +121,83 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          answers: Json
+          child_age: number | null
+          child_grade: string | null
+          child_name: string
+          child_profile_id: string | null
+          created_at: string
+          highest_disorder: string | null
+          highest_percent: number | null
+          id: string
+          parent_id: string
+          recommendations: Json
+          recommended_games: Json
+          risk_level: string | null
+          scores: Json
+          strengths: Json
+          therapist: Json
+          total_correct: number
+          total_questions: number
+          updated_at: string
+          weaknesses: Json
+        }
+        Insert: {
+          answers?: Json
+          child_age?: number | null
+          child_grade?: string | null
+          child_name: string
+          child_profile_id?: string | null
+          created_at?: string
+          highest_disorder?: string | null
+          highest_percent?: number | null
+          id?: string
+          parent_id: string
+          recommendations?: Json
+          recommended_games?: Json
+          risk_level?: string | null
+          scores?: Json
+          strengths?: Json
+          therapist?: Json
+          total_correct?: number
+          total_questions?: number
+          updated_at?: string
+          weaknesses?: Json
+        }
+        Update: {
+          answers?: Json
+          child_age?: number | null
+          child_grade?: string | null
+          child_name?: string
+          child_profile_id?: string | null
+          created_at?: string
+          highest_disorder?: string | null
+          highest_percent?: number | null
+          id?: string
+          parent_id?: string
+          recommendations?: Json
+          recommended_games?: Json
+          risk_level?: string | null
+          scores?: Json
+          strengths?: Json
+          therapist?: Json
+          total_correct?: number
+          total_questions?: number
+          updated_at?: string
+          weaknesses?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
