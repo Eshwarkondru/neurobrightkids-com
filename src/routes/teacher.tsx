@@ -1,68 +1,204 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, Download, GraduationCap, Search, Users } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, FileText, GraduationCap, Loader2, Search, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { severityColor, type Severity } from "@/lib/assessment";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({ meta: [{ title: "Teacher Portal — NeuroLearn AI" }, { name: "description", content: "Classroom analytics, risk monitoring, and downloadable reports for teachers." }] }),
   component: TeacherPortal,
 });
 
-const students = [
-  { name: "Aarav S.", grade: "3", risk: "Moderate", focus: "Dysgraphia", trend: "+8%" },
-  { name: "Maya P.", grade: "4", risk: "Low", focus: "—", trend: "+12%" },
-  { name: "Rohit K.", grade: "3", risk: "High", focus: "ADHD", trend: "-3%" },
-  { name: "Ananya M.", grade: "5", risk: "Low", focus: "—", trend: "+5%" },
-  { name: "Devansh T.", grade: "4", risk: "Moderate", focus: "Dyslexia", trend: "+2%" },
-];
+type ReportRow = {
+  id: string;
+  created_at: string;
+  child_profile_id: string | null;
+  child_name: string;
+  child_age: number | null;
+  child_grade: string | null;
+  highest_disorder: string | null;
+  highest_percent: number | null;
+  risk_level: string | null;
+};
 
-const riskColor = (lv: string) => lv === "High" ? "var(--destructive)" : lv === "Moderate" ? "var(--warning)" : "var(--success)";
+type Student = {
+  key: string;
+  name: string;
+  grade: string;
+  risk: Severity | "—";
+  focus: string;
+  trendPct: number;
+  latestPercent: number;
+  reports: number;
+};
 
 function TeacherPortal() {
+  const [loading, setLoading] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
+  const [rows, setRows] = useState<ReportRow[]>([]);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    void load();
+    const { data } = supabase.auth.onAuthStateChange(() => void load());
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setSignedIn(false); setRows([]); setLoading(false); return; }
+    setSignedIn(true);
+    const { data, error } = await supabase
+      .from("reports")
+      .select("id, created_at, child_profile_id, child_name, child_age, child_grade, highest_disorder, highest_percent, risk_level")
+      .eq("parent_id", u.user.id)
+      .order("created_at", { ascending: false });
+    if (error) console.error("teacher reports load failed", error);
+    setRows((data as ReportRow[]) ?? []);
+    setLoading(false);
+  }
+
+  const students: Student[] = useMemo(() => {
+    // Group reports by child (child_profile_id when present, else child name).
+    const map = new Map<string, ReportRow[]>();
+    for (const r of rows) {
+      const key = r.child_profile_id ?? `name:${r.child_name.toLowerCase()}`;
+      const list = map.get(key) ?? [];
+      list.push(r);
+      map.set(key, list);
+    }
+    return Array.from(map.entries()).map(([key, list]) => {
+      // list is already sorted DESC by created_at.
+      const latest = list[0];
+      const prev = list[1];
+      const trendPct = prev && typeof prev.highest_percent === "number" && typeof latest.highest_percent === "number"
+        ? latest.highest_percent - prev.highest_percent
+        : 0;
+      return {
+        key,
+        name: latest.child_name?.trim() || "Unnamed child",
+        grade: latest.child_grade || "—",
+        risk: (latest.risk_level as Severity) ?? "—",
+        focus: latest.highest_disorder ?? "—",
+        trendPct,
+        latestPercent: latest.highest_percent ?? 0,
+        reports: list.length,
+      };
+    });
+  }, [rows]);
+
+  const filtered = useMemo(
+    () => students.filter((s) => s.name.toLowerCase().includes(query.trim().toLowerCase())),
+    [students, query],
+  );
+
+  const atRisk = students.filter((s) => s.risk === "High" || s.risk === "Very High" || s.risk === "Moderate").length;
+  const avgTrend = students.length
+    ? Math.round(students.reduce((acc, s) => acc + s.trendPct, 0) / students.length)
+    : 0;
+  const totalReports = rows.length;
+
+  const riskColor = (lv: Student["risk"]) =>
+    lv === "—" ? "var(--muted-foreground)" : severityColor(lv as Severity);
+
   return (
     <SiteLayout>
-      <PageHero eyebrow="Teacher portal" title="Your class, at a glance" subtitle="Monitor risk, celebrate growth, and download reports in seconds." />
-      <div className="grid gap-4 sm:grid-cols-4">
-        {[
-          { l: "Students", v: "28", icon: Users },
-          { l: "At risk", v: "4", icon: AlertTriangle },
-          { l: "Avg growth", v: "+14%", icon: GraduationCap },
-          { l: "Sessions this week", v: "112", icon: GraduationCap },
-        ].map((s)=>(
-          <div key={s.l} className="glass-strong rounded-3xl p-5">
-            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.l}<s.icon className="h-4 w-4 text-primary" /></div>
-            <div className="mt-2 gradient-text text-3xl font-bold">{s.v}</div>
-          </div>
-        ))}
-      </div>
+      <PageHero eyebrow="Teacher portal" title="Your class, at a glance" subtitle="Live view of every assessed child linked to your account." />
 
-      <div className="mt-6 glass-strong rounded-3xl p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-base font-semibold">Class 3B · Performance overview</div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="glass flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm">
-              <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              <Input className="h-7 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0" placeholder="Search students" />
-            </div>
-            <Button variant="hero" size="sm"><Download className="h-3.5 w-3.5" /> Export</Button>
-          </div>
+      {loading ? (
+        <div className="glass-strong rounded-3xl p-10 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <p className="mt-3 text-sm text-muted-foreground">Loading class data…</p>
         </div>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
-          <div className="grid grid-cols-[1fr_60px_120px_140px_80px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Trend</div>
-          </div>
-          {students.map((s)=>(
-            <div key={s.name} className="grid grid-cols-[1fr_60px_120px_140px_80px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
-              <div className="min-w-0 truncate font-medium">{s.name}</div>
-              <div className="text-muted-foreground">{s.grade}</div>
-              <div><span className="rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{background: riskColor(s.risk)}}>{s.risk}</span></div>
-              <div className="text-muted-foreground">{s.focus}</div>
-              <div className={s.trend.startsWith("-") ? "text-destructive" : "text-success"}>{s.trend}</div>
-            </div>
-          ))}
+      ) : !signedIn ? (
+        <div className="glass-strong rounded-3xl p-8 text-center">
+          <FileText className="mx-auto h-10 w-10 text-primary" />
+          <div className="mt-3 text-lg font-semibold">Sign in to see your class</div>
+          <Link to="/auth"><Button variant="hero" className="mt-4">Sign in</Button></Link>
         </div>
-      </div>
+      ) : students.length === 0 ? (
+        <div className="glass-strong rounded-3xl p-8 text-center">
+          <Sparkles className="mx-auto h-10 w-10 text-primary" />
+          <div className="mt-3 text-lg font-semibold">No assessed students yet</div>
+          <p className="mt-1 text-sm text-muted-foreground">Have a student complete the assessment to see them here.</p>
+          <Link to="/assessment"><Button variant="hero" className="mt-4">Start assessment</Button></Link>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <StatCard label="Students" value={String(students.length)} icon={Users} />
+            <StatCard label="At risk" value={String(atRisk)} icon={AlertTriangle} />
+            <StatCard label="Avg trend" value={`${avgTrend >= 0 ? "+" : ""}${avgTrend}%`} icon={GraduationCap} />
+            <StatCard label="Total reports" value={String(totalReports)} icon={GraduationCap} />
+          </div>
+
+          <div className="mt-6 glass-strong rounded-3xl p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-base font-semibold">Child performance overview</div>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="glass flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="h-7 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+                    placeholder="Search students"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
+              <div className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Latest %</div><div>Trend</div>
+              </div>
+              {filtered.map((s) => {
+                const trendStr = `${s.trendPct >= 0 ? "+" : ""}${s.trendPct}%`;
+                // trend improvement is a DECREASE in risk %.
+                const improving = s.trendPct < 0;
+                return (
+                  <div key={s.key} className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
+                    <div className="min-w-0 truncate font-medium">{s.name}</div>
+                    <div className="text-muted-foreground">{s.grade}</div>
+                    <div>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                        style={{ background: riskColor(s.risk) }}
+                      >
+                        {s.risk}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">{s.focus}</div>
+                    <div className="text-muted-foreground">{s.latestPercent}%</div>
+                    <div className={improving ? "text-success" : s.trendPct > 0 ? "text-destructive" : "text-muted-foreground"}>
+                      {trendStr}
+                    </div>
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                  No students match "{query}".
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </SiteLayout>
+  );
+}
+
+function StatCard({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Users }) {
+  return (
+    <div className="glass-strong rounded-3xl p-5">
+      <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}<Icon className="h-4 w-4 text-primary" />
+      </div>
+      <div className="mt-2 gradient-text text-3xl font-bold">{value}</div>
+    </div>
   );
 }

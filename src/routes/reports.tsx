@@ -1,11 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileText, Filter, Loader2, Sparkles } from "lucide-react";
+import { ChevronDown, Download, FileText, Filter, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { computeAssessment, generateReportPDF, severityColor, type AssessmentResult } from "@/lib/assessment";
+import {
+  DISORDER_LABEL,
+  generateReportPDF,
+  severityColor,
+  severityFor,
+  type AssessmentResult,
+  type Disorder,
+  type DisorderResult,
+  type Severity,
+} from "@/lib/assessment";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -17,29 +26,89 @@ export const Route = createFileRoute("/reports")({
   component: Reports,
 });
 
-type SessionRow = {
+type ReportRow = {
   id: string;
-  game_key: string;
-  score: number;
-  rounds: number;
-  completed_at: string;
+  parent_id: string;
   child_profile_id: string | null;
-  responses: unknown;
-  child_profiles: { child_name: string; age: number; grade: string | null } | null;
+  child_name: string;
+  child_age: number | null;
+  child_grade: string | null;
+  answers: unknown;
+  scores: unknown;
+  highest_disorder: string | null;
+  highest_percent: number | null;
+  risk_level: string | null;
+  recommendations: unknown;
+  therapist: unknown;
+  recommended_games: unknown;
+  strengths: unknown;
+  weaknesses: unknown;
+  total_correct: number;
+  total_questions: number;
+  created_at: string;
 };
 
-function resultFromRow(r: SessionRow): AssessmentResult {
-  const stored = r.responses as { answers?: number[]; scores?: unknown } | null;
-  if (stored?.answers && Array.isArray(stored.answers)) {
-    return computeAssessment(stored.answers as number[]);
-  }
-  return computeAssessment([]);
+function asStringArray(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+
+function asGameArray(v: unknown): { key: string; name: string; reason: string }[] {
+  return Array.isArray(v)
+    ? v.filter(
+        (g): g is { key: string; name: string; reason: string } =>
+          !!g && typeof (g as { key?: unknown }).key === "string" &&
+          typeof (g as { name?: unknown }).name === "string" &&
+          typeof (g as { reason?: unknown }).reason === "string",
+      )
+    : [];
+}
+
+function resultFromRow(r: ReportRow): AssessmentResult {
+  const rawScores = Array.isArray(r.scores) ? (r.scores as unknown[]) : [];
+  const results: DisorderResult[] = rawScores
+    .map((raw) => {
+      const item = raw as Partial<DisorderResult> & { disorder?: string; percent?: number };
+      const disorder = (item.disorder as Disorder) ?? "memory";
+      const percent = typeof item.percent === "number" ? item.percent : 0;
+      return {
+        disorder,
+        label: item.label ?? DISORDER_LABEL[disorder] ?? String(disorder),
+        percent,
+        severity: (item.severity as Severity) ?? severityFor(percent),
+        correct: typeof item.correct === "number" ? item.correct : 0,
+        total: typeof item.total === "number" ? item.total : 0,
+      };
+    })
+    .sort((a, b) => b.percent - a.percent);
+
+  const highest: DisorderResult =
+    results[0] ?? {
+      disorder: "memory",
+      label: r.highest_disorder ?? "—",
+      percent: r.highest_percent ?? 0,
+      severity: (r.risk_level as Severity) ?? severityFor(r.highest_percent ?? 0),
+      correct: 0,
+      total: 0,
+    };
+
+  return {
+    results,
+    highest,
+    totalCorrect: r.total_correct,
+    totalQuestions: r.total_questions,
+    strengths: asStringArray(r.strengths),
+    weaknesses: asStringArray(r.weaknesses),
+    recommendations: asStringArray(r.recommendations),
+    therapist: asStringArray(r.therapist),
+    recommendedGames: asGameArray(r.recommended_games),
+  };
 }
 
 function Reports() {
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
-  const [rows, setRows] = useState<SessionRow[]>([]);
+  const [rows, setRows] = useState<ReportRow[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -56,26 +125,26 @@ function Reports() {
     }
     setSignedIn(true);
     const { data, error } = await supabase
-      .from("game_sessions")
-      .select("id, game_key, score, rounds, completed_at, child_profile_id, responses, child_profiles(child_name, age, grade)")
-      .eq("user_id", userData.user.id)
-      .eq("game_key", "assessment")
-      .order("completed_at", { ascending: false });
-    if (error) console.error("reports load failed", error);
-    setRows((data as SessionRow[]) ?? []);
+      .from("reports")
+      .select("*")
+      .eq("parent_id", userData.user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("reports load failed", error);
+      toast.error("Could not load reports.");
+    }
+    setRows((data as ReportRow[]) ?? []);
     setLoading(false);
   }
 
   const reports = useMemo(() => rows.map((r) => {
     const result = resultFromRow(r);
-    const child = r.child_profiles;
-    const childName = child?.child_name?.trim() || "Unnamed child";
     return {
       row: r,
       result,
-      child: { name: childName, age: child?.age ?? null, grade: child?.grade ?? null },
+      child: { name: r.child_name?.trim() || "Unnamed child", age: r.child_age, grade: r.child_grade },
       reportId: `RPT-${r.id.slice(0, 6).toUpperCase()}`,
-      date: new Date(r.completed_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+      date: new Date(r.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
     };
   }), [rows]);
 
@@ -129,6 +198,7 @@ function Reports() {
           <div className="grid gap-4">
             {reports.map((rep) => {
               const h = rep.result.highest;
+              const open = openId === rep.row.id;
               return (
                 <div key={rep.row.id} className="glass-strong rounded-3xl p-5 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -140,8 +210,12 @@ function Reports() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link to="/dashboard"><Button variant="glass" size="sm"><FileText className="h-3.5 w-3.5" /> View</Button></Link>
-                      <Button variant="hero" size="sm" onClick={() => handleDownload(rep)}><Download className="h-3.5 w-3.5" /> PDF</Button>
+                      <Button variant="glass" size="sm" onClick={() => setOpenId(open ? null : rep.row.id)}>
+                        <FileText className="h-3.5 w-3.5" /> {open ? "Hide" : "View"}
+                      </Button>
+                      <Button variant="hero" size="sm" onClick={() => handleDownload(rep)}>
+                        <Download className="h-3.5 w-3.5" /> PDF
+                      </Button>
                     </div>
                   </div>
 
@@ -163,6 +237,34 @@ function Reports() {
                       </div>
                     ))}
                   </div>
+
+                  {open && (
+                    <div className="mt-5 grid gap-4 rounded-2xl border border-border/60 p-4 sm:grid-cols-2">
+                      <DetailBlock title="Strengths" items={rep.result.strengths} />
+                      <DetailBlock title="Weaknesses" items={rep.result.weaknesses} />
+                      <DetailBlock title="Recommendations" items={rep.result.recommendations} />
+                      <DetailBlock title="Therapist suggestions" items={rep.result.therapist} />
+                      <div className="sm:col-span-2">
+                        <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recommended games</div>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          {rep.result.recommendedGames.map((g) => (
+                            <div key={g.key} className="rounded-xl bg-secondary/40 p-3 text-sm">
+                              <div className="font-semibold">{g.name}</div>
+                              <div className="text-xs text-muted-foreground">{g.reason}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setOpenId(open ? null : rep.row.id)}
+                    className="mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition ${open ? "rotate-180" : ""}`} />
+                    {open ? "Hide details" : "Show details"}
+                  </button>
                 </div>
               );
             })}
@@ -170,5 +272,19 @@ function Reports() {
         </>
       )}
     </SiteLayout>
+  );
+}
+
+function DetailBlock({ title, items }: { title: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+      <ul className="space-y-1.5 text-sm">
+        {items.map((it) => (
+          <li key={it} className="flex gap-2"><span className="text-primary">•</span><span>{it}</span></li>
+        ))}
+      </ul>
+    </div>
   );
 }
