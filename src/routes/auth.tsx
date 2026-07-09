@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
+import { assignPrivilegedRole } from "@/lib/api/roles.functions";
 import { lovable } from "@/integrations/lovable";
 import type { Enums, Tables } from "@/integrations/supabase/types";
 
@@ -147,7 +148,17 @@ function AuthPage() {
         organization: organization.trim() || null,
       };
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload, { onConflict: "user_id" });
-      const { error: roleError } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
+      let roleError: unknown = null;
+      if (selectedRole === "child") {
+        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
+        roleError = error;
+      } else if (selectedRole === "parent" || selectedRole === "teacher" || selectedRole === "special_educator") {
+        try {
+          await assignPrivilegedRole({ data: { role: selectedRole } });
+        } catch (err) {
+          roleError = err;
+        }
+      }
       if (selectedRole === "child" && childName.trim()) {
         const { data: newChild } = await supabase.from("child_profiles").insert({
           owner_id: userId,
