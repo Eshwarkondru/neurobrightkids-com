@@ -116,7 +116,6 @@ function AuthPage() {
       return;
     }
     toast.success("Logged in successfully");
-    const next = safeNext(Route.useSearch.getState?.() ? undefined : undefined);
     const nextParam = safeNext(new URLSearchParams(window.location.search).get("next") ?? undefined);
     if (nextParam) {
       window.location.href = nextParam;
