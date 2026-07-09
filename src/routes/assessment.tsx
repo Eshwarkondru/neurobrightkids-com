@@ -40,41 +40,71 @@ function Assessment() {
         setSaved(true); setSaving(false);
         return;
       }
+      const userId = userData.user.id;
+
+      // Resolve the active child profile (verified to belong to this parent).
       const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
-      let childProfileId: string | null = null;
+      let childProfile: { id: string; child_name: string; age: number; grade: string | null } | null = null;
       if (candidate) {
         const { data: owned } = await supabase
-          .from("child_profiles").select("id")
-          .eq("id", candidate).eq("owner_id", userData.user.id).maybeSingle();
-        childProfileId = owned?.id ?? null;
+          .from("child_profiles")
+          .select("id, child_name, age, grade")
+          .eq("id", candidate)
+          .eq("owner_id", userId)
+          .maybeSingle();
+        childProfile = owned ?? null;
       }
-      const payload = {
-        answers,
-        scores: computed.results,
-        highest: computed.highest,
-        strengths: computed.strengths,
-        weaknesses: computed.weaknesses,
-        recommendations: computed.recommendations,
-        therapist: computed.therapist,
-        recommendedGames: computed.recommendedGames,
-      };
-      const { error } = await supabase.from("game_sessions").insert({
-        user_id: userData.user.id,
-        child_profile_id: childProfileId,
-        game_key: "assessment",
-        score: computed.totalCorrect,
-        rounds: computed.totalQuestions,
-        responses: payload as unknown as never,
+      if (!childProfile) {
+        const { data: firstOwned } = await supabase
+          .from("child_profiles")
+          .select("id, child_name, age, grade")
+          .eq("owner_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        childProfile = firstOwned ?? null;
+        if (childProfile && typeof window !== "undefined") {
+          localStorage.setItem("neurolearn_active_child", childProfile.id);
+        }
+      }
+
+      // Fall back to the parent's profile display name if no child profile exists.
+      let displayChildName = childProfile?.child_name?.trim() ?? "";
+      if (!displayChildName) {
+        const { data: prof } = await supabase
+          .from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+        displayChildName = prof?.display_name?.trim() || (userData.user.email ?? "Child");
+      }
+
+      const { error } = await supabase.from("reports").insert({
+        parent_id: userId,
+        child_profile_id: childProfile?.id ?? null,
+        child_name: displayChildName,
+        child_age: childProfile?.age ?? null,
+        child_grade: childProfile?.grade ?? null,
+        answers: answers as unknown as never,
+        scores: computed.results as unknown as never,
+        highest_disorder: computed.highest.label,
+        highest_percent: computed.highest.percent,
+        risk_level: computed.highest.severity,
+        recommendations: computed.recommendations as unknown as never,
+        therapist: computed.therapist as unknown as never,
+        recommended_games: computed.recommendedGames as unknown as never,
+        strengths: computed.strengths as unknown as never,
+        weaknesses: computed.weaknesses as unknown as never,
+        total_correct: computed.totalCorrect,
+        total_questions: computed.totalQuestions,
       });
       if (error) {
-        console.error("game_sessions insert failed", error);
+        console.error("reports insert failed", error);
         toast.error("Could not save report. Please try again.");
       } else {
-        toast.success("New personalized report generated!");
+        toast.success("New personalized report saved to your account!");
       }
       setSaved(true); setSaving(false);
     })();
   }, [done, saved, saving, answers]);
+
 
   const restart = () => { setI(0); setAnswers([]); setSaved(false); setResult(null); };
   const current = ASSESSMENT_QUESTIONS[i];
