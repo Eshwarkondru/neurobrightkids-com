@@ -147,7 +147,17 @@ function AuthPage() {
         organization: organization.trim() || null,
       };
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload, { onConflict: "user_id" });
-      const { error: roleError } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
+      let roleError: unknown = null;
+      if (selectedRole === "child") {
+        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: selectedRole });
+        roleError = error;
+      } else {
+        try {
+          await assignPrivilegedRole({ data: { role: selectedRole } });
+        } catch (err) {
+          roleError = err;
+        }
+      }
       if (selectedRole === "child" && childName.trim()) {
         const { data: newChild } = await supabase.from("child_profiles").insert({
           owner_id: userId,
