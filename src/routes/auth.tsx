@@ -193,6 +193,11 @@ function AuthPage() {
 
     setLoading(false);
     toast.success("Account created. You can now play games and save progress.");
+    const nextParam = safeNext(new URLSearchParams(window.location.search).get("next") ?? undefined);
+    if (nextParam) {
+      window.location.href = nextParam;
+      return;
+    }
     await navigate({ to: selectedRole === "child" ? "/games" : "/parent" });
   }
 
