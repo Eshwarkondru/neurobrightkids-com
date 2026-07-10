@@ -1,11 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, GraduationCap, Loader2, Search, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, Download, FileText, GraduationCap, Loader2, Search, Share2, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
-import { severityColor, type Severity } from "@/lib/assessment";
+import { toast } from "sonner";
+import {
+  DISORDER_LABEL,
+  generateReportPDF,
+  severityColor,
+  severityFor,
+  shareReportPDF,
+  type AssessmentResult,
+  type Disorder,
+  type DisorderResult,
+  type Severity,
+} from "@/lib/assessment";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({ meta: [{ title: "Teacher Portal — NeuroLearn AI" }, { name: "description", content: "Classroom analytics, risk monitoring, and downloadable reports for teachers." }] }),
