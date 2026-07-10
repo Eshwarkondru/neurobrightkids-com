@@ -95,12 +95,15 @@ function TeacherPortal() {
       return {
         key,
         name: latest.child_name?.trim() || "Unnamed child",
+        age: latest.child_age,
         grade: latest.child_grade || "—",
         risk: (latest.risk_level as Severity) ?? "—",
         focus: latest.highest_disorder ?? "—",
         trendPct,
         latestPercent: latest.highest_percent ?? 0,
         reports: list.length,
+        latestReportId: latest.id,
+        latestReportDate: new Date(latest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
       };
     });
   }, [rows]);
