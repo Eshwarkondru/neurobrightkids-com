@@ -122,6 +122,55 @@ function TeacherPortal() {
   const riskColor = (lv: Student["risk"]) =>
     lv === "—" ? "var(--muted-foreground)" : severityColor(lv as Severity);
 
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function loadFullReport(id: string) {
+    const { data, error } = await supabase.from("reports").select("*").eq("id", id).maybeSingle();
+    if (error || !data) throw error ?? new Error("Report not found");
+    return data as ReportRow & Parameters<typeof resultFromReportRow>[0] & {
+      child_name: string; child_age: number | null; child_grade: string | null; created_at: string; id: string;
+    };
+  }
+
+  async function handleTeacherDownload(s: Student) {
+    setBusyId(s.latestReportId);
+    try {
+      const row = await loadFullReport(s.latestReportId);
+      generateReportPDF({
+        reportId: `RPT-${row.id.slice(0, 6).toUpperCase()}`,
+        child: { name: row.child_name || s.name, age: row.child_age ?? s.age, grade: row.child_grade ?? (s.grade === "—" ? null : s.grade) },
+        date: new Date(row.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+        result: resultFromReportRow(row),
+      });
+      toast.success("PDF downloaded");
+    } catch (err) {
+      console.error("teacher pdf failed", err);
+      toast.error("Could not generate PDF. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleTeacherShare(s: Student) {
+    setBusyId(s.latestReportId);
+    try {
+      const row = await loadFullReport(s.latestReportId);
+      const outcome = await shareReportPDF({
+        reportId: `RPT-${row.id.slice(0, 6).toUpperCase()}`,
+        child: { name: row.child_name || s.name, age: row.child_age ?? s.age, grade: row.child_grade ?? (s.grade === "—" ? null : s.grade) },
+        date: new Date(row.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+        result: resultFromReportRow(row),
+      });
+      toast.success(outcome === "shared" ? "Report shared" : "Sharing unavailable — PDF downloaded instead");
+    } catch (err) {
+      console.error("teacher pdf share failed", err);
+      toast.error("Could not share report. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+
   return (
     <SiteLayout>
       <PageHero eyebrow="Teacher portal" title="Your class, at a glance" subtitle="Live view of every assessed child linked to your account." />
