@@ -10,6 +10,7 @@ import {
   generateReportPDF,
   severityColor,
   severityFor,
+  shareReportPDF,
   type AssessmentResult,
   type Disorder,
   type DisorderResult,
