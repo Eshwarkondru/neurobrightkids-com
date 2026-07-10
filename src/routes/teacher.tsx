@@ -7,14 +7,10 @@ import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  DISORDER_LABEL,
   generateReportPDF,
+  resultFromReportRow,
   severityColor,
-  severityFor,
   shareReportPDF,
-  type AssessmentResult,
-  type Disorder,
-  type DisorderResult,
   type Severity,
 } from "@/lib/assessment";
 
