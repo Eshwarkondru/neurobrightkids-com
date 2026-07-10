@@ -38,12 +38,15 @@ type ReportRow = {
 type Student = {
   key: string;
   name: string;
+  age: number | null;
   grade: string;
   risk: Severity | "—";
   focus: string;
   trendPct: number;
   latestPercent: number;
   reports: number;
+  latestReportId: string;
+  latestReportDate: string;
 };
 
 function TeacherPortal() {
