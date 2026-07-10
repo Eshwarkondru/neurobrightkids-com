@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Download, FileText, Filter, Loader2, Sparkles } from "lucide-react";
+import { ChevronDown, Download, FileText, Filter, Loader2, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
