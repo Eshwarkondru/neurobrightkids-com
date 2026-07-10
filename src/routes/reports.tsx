@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Download, FileText, Filter, Loader2, Sparkles } from "lucide-react";
+import { ChevronDown, Download, FileText, Filter, Loader2, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import {
   generateReportPDF,
   severityColor,
   severityFor,
+  shareReportPDF,
   type AssessmentResult,
   type Disorder,
   type DisorderResult,
@@ -165,6 +166,21 @@ function Reports() {
     }
   };
 
+  const handleShare = async (report: (typeof reports)[number]) => {
+    try {
+      const outcome = await shareReportPDF({
+        reportId: report.reportId,
+        child: report.child,
+        date: report.date,
+        result: report.result,
+      });
+      toast.success(outcome === "shared" ? "Report shared" : "Sharing unavailable — PDF downloaded instead");
+    } catch (err) {
+      console.error("pdf share failed", err);
+      toast.error("Could not share report. Please try again.");
+    }
+  };
+
   return (
     <SiteLayout>
       <PageHero eyebrow="Reports" title="Your personalized reports" subtitle="Every completed assessment generates a fresh report linked to your child's profile." />
@@ -212,6 +228,9 @@ function Reports() {
                     <div className="flex gap-2">
                       <Button variant="glass" size="sm" onClick={() => setOpenId(open ? null : rep.row.id)}>
                         <FileText className="h-3.5 w-3.5" /> {open ? "Hide" : "View"}
+                      </Button>
+                      <Button variant="glass" size="sm" onClick={() => void handleShare(rep)}>
+                        <Share2 className="h-3.5 w-3.5" /> Share
                       </Button>
                       <Button variant="hero" size="sm" onClick={() => handleDownload(rep)}>
                         <Download className="h-3.5 w-3.5" /> PDF

@@ -1,11 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, GraduationCap, Loader2, Search, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, Download, FileText, GraduationCap, Loader2, Search, Share2, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
-import { severityColor, type Severity } from "@/lib/assessment";
+import { toast } from "sonner";
+import {
+  generateReportPDF,
+  resultFromReportRow,
+  severityColor,
+  shareReportPDF,
+  type Severity,
+} from "@/lib/assessment";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({ meta: [{ title: "Teacher Portal — NeuroLearn AI" }, { name: "description", content: "Classroom analytics, risk monitoring, and downloadable reports for teachers." }] }),
@@ -27,12 +34,15 @@ type ReportRow = {
 type Student = {
   key: string;
   name: string;
+  age: number | null;
   grade: string;
   risk: Severity | "—";
   focus: string;
   trendPct: number;
   latestPercent: number;
   reports: number;
+  latestReportId: string;
+  latestReportDate: string;
 };
 
 function TeacherPortal() {
@@ -81,12 +91,15 @@ function TeacherPortal() {
       return {
         key,
         name: latest.child_name?.trim() || "Unnamed child",
+        age: latest.child_age,
         grade: latest.child_grade || "—",
         risk: (latest.risk_level as Severity) ?? "—",
         focus: latest.highest_disorder ?? "—",
         trendPct,
         latestPercent: latest.highest_percent ?? 0,
         reports: list.length,
+        latestReportId: latest.id,
+        latestReportDate: new Date(latest.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
       };
     });
   }, [rows]);
@@ -104,6 +117,55 @@ function TeacherPortal() {
 
   const riskColor = (lv: Student["risk"]) =>
     lv === "—" ? "var(--muted-foreground)" : severityColor(lv as Severity);
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function loadFullReport(id: string) {
+    const { data, error } = await supabase.from("reports").select("*").eq("id", id).maybeSingle();
+    if (error || !data) throw error ?? new Error("Report not found");
+    return data as ReportRow & Parameters<typeof resultFromReportRow>[0] & {
+      child_name: string; child_age: number | null; child_grade: string | null; created_at: string; id: string;
+    };
+  }
+
+  async function handleTeacherDownload(s: Student) {
+    setBusyId(s.latestReportId);
+    try {
+      const row = await loadFullReport(s.latestReportId);
+      generateReportPDF({
+        reportId: `RPT-${row.id.slice(0, 6).toUpperCase()}`,
+        child: { name: row.child_name || s.name, age: row.child_age ?? s.age, grade: row.child_grade ?? (s.grade === "—" ? null : s.grade) },
+        date: new Date(row.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+        result: resultFromReportRow(row),
+      });
+      toast.success("PDF downloaded");
+    } catch (err) {
+      console.error("teacher pdf failed", err);
+      toast.error("Could not generate PDF. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleTeacherShare(s: Student) {
+    setBusyId(s.latestReportId);
+    try {
+      const row = await loadFullReport(s.latestReportId);
+      const outcome = await shareReportPDF({
+        reportId: `RPT-${row.id.slice(0, 6).toUpperCase()}`,
+        child: { name: row.child_name || s.name, age: row.child_age ?? s.age, grade: row.child_grade ?? (s.grade === "—" ? null : s.grade) },
+        date: new Date(row.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+        result: resultFromReportRow(row),
+      });
+      toast.success(outcome === "shared" ? "Report shared" : "Sharing unavailable — PDF downloaded instead");
+    } catch (err) {
+      console.error("teacher pdf share failed", err);
+      toast.error("Could not share report. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
 
   return (
     <SiteLayout>
@@ -151,39 +213,49 @@ function TeacherPortal() {
                 </div>
               </div>
             </div>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
-              <div className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Latest %</div><div>Trend</div>
-              </div>
-              {filtered.map((s) => {
-                const trendStr = `${s.trendPct >= 0 ? "+" : ""}${s.trendPct}%`;
-                // trend improvement is a DECREASE in risk %.
-                const improving = s.trendPct < 0;
-                return (
-                  <div key={s.key} className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
-                    <div className="min-w-0 truncate font-medium">{s.name}</div>
-                    <div className="text-muted-foreground">{s.grade}</div>
-                    <div>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                        style={{ background: riskColor(s.risk) }}
-                      >
-                        {s.risk}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground">{s.focus}</div>
-                    <div className="text-muted-foreground">{s.latestPercent}%</div>
-                    <div className={improving ? "text-success" : s.trendPct > 0 ? "text-destructive" : "text-muted-foreground"}>
-                      {trendStr}
-                    </div>
-                  </div>
-                );
-              })}
-              {filtered.length === 0 && (
-                <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No students match "{query}".
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-border/60">
+              <div className="min-w-[820px]">
+                <div className="grid grid-cols-[1fr_60px_120px_140px_80px_70px_160px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Latest %</div><div>Trend</div><div className="text-right">Report</div>
                 </div>
-              )}
+                {filtered.map((s) => {
+                  const trendStr = `${s.trendPct >= 0 ? "+" : ""}${s.trendPct}%`;
+                  const improving = s.trendPct < 0;
+                  const busy = busyId === s.latestReportId;
+                  return (
+                    <div key={s.key} className="grid grid-cols-[1fr_60px_120px_140px_80px_70px_160px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
+                      <div className="min-w-0 truncate font-medium">{s.name}</div>
+                      <div className="text-muted-foreground">{s.grade}</div>
+                      <div>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                          style={{ background: riskColor(s.risk) }}
+                        >
+                          {s.risk}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">{s.focus}</div>
+                      <div className="text-muted-foreground">{s.latestPercent}%</div>
+                      <div className={improving ? "text-success" : s.trendPct > 0 ? "text-destructive" : "text-muted-foreground"}>
+                        {trendStr}
+                      </div>
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="glass" size="sm" disabled={busy} onClick={() => void handleTeacherShare(s)}>
+                          <Share2 className="h-3.5 w-3.5" /> Share
+                        </Button>
+                        <Button variant="hero" size="sm" disabled={busy} onClick={() => void handleTeacherDownload(s)}>
+                          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} PDF
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                    No students match "{query}".
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>
