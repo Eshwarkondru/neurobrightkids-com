@@ -250,11 +250,12 @@ function TeacherPortal() {
                     </div>
                   );
                 })}
-              {filtered.length === 0 && (
-                <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No students match "{query}".
-                </div>
-              )}
+                {filtered.length === 0 && (
+                  <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                    No students match "{query}".
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>
