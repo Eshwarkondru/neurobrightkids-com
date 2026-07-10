@@ -166,6 +166,21 @@ function Reports() {
     }
   };
 
+  const handleShare = async (report: (typeof reports)[number]) => {
+    try {
+      const outcome = await shareReportPDF({
+        reportId: report.reportId,
+        child: report.child,
+        date: report.date,
+        result: report.result,
+      });
+      toast.success(outcome === "shared" ? "Report shared" : "Sharing unavailable — PDF downloaded instead");
+    } catch (err) {
+      console.error("pdf share failed", err);
+      toast.error("Could not share report. Please try again.");
+    }
+  };
+
   return (
     <SiteLayout>
       <PageHero eyebrow="Reports" title="Your personalized reports" subtitle="Every completed assessment generates a fresh report linked to your child's profile." />
