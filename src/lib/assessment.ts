@@ -197,6 +197,77 @@ export function recommendedGamesFor(d: Disorder): { key: string; name: string; r
 
 export type ChildInfo = { name: string; age: number | null; grade: string | null };
 
+export type ReportRowLike = {
+  scores: unknown;
+  highest_disorder: string | null;
+  highest_percent: number | null;
+  risk_level: string | null;
+  recommendations: unknown;
+  therapist: unknown;
+  recommended_games: unknown;
+  strengths: unknown;
+  weaknesses: unknown;
+  total_correct: number;
+  total_questions: number;
+};
+
+function asStr(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+function asGames(v: unknown): { key: string; name: string; reason: string }[] {
+  return Array.isArray(v)
+    ? v.filter(
+        (g): g is { key: string; name: string; reason: string } =>
+          !!g &&
+          typeof (g as { key?: unknown }).key === "string" &&
+          typeof (g as { name?: unknown }).name === "string" &&
+          typeof (g as { reason?: unknown }).reason === "string",
+      )
+    : [];
+}
+
+export function resultFromReportRow(r: ReportRowLike): AssessmentResult {
+  const rawScores = Array.isArray(r.scores) ? (r.scores as unknown[]) : [];
+  const results: DisorderResult[] = rawScores
+    .map((raw) => {
+      const item = raw as Partial<DisorderResult> & { disorder?: string; percent?: number };
+      const disorder = (item.disorder as Disorder) ?? "memory";
+      const percent = typeof item.percent === "number" ? item.percent : 0;
+      return {
+        disorder,
+        label: item.label ?? DISORDER_LABEL[disorder] ?? String(disorder),
+        percent,
+        severity: (item.severity as Severity) ?? severityFor(percent),
+        correct: typeof item.correct === "number" ? item.correct : 0,
+        total: typeof item.total === "number" ? item.total : 0,
+      };
+    })
+    .sort((a, b) => b.percent - a.percent);
+
+  const highest: DisorderResult =
+    results[0] ?? {
+      disorder: "memory",
+      label: r.highest_disorder ?? "—",
+      percent: r.highest_percent ?? 0,
+      severity: (r.risk_level as Severity) ?? severityFor(r.highest_percent ?? 0),
+      correct: 0,
+      total: 0,
+    };
+
+  return {
+    results,
+    highest,
+    totalCorrect: r.total_correct,
+    totalQuestions: r.total_questions,
+    strengths: asStr(r.strengths),
+    weaknesses: asStr(r.weaknesses),
+    recommendations: asStr(r.recommendations),
+    therapist: asStr(r.therapist),
+    recommendedGames: asGames(r.recommended_games),
+  };
+}
+
+
 export type ReportPDFOptions = {
   reportId: string;
   child: ChildInfo;
