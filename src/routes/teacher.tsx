@@ -213,34 +213,43 @@ function TeacherPortal() {
                 </div>
               </div>
             </div>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
-              <div className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Latest %</div><div>Trend</div>
-              </div>
-              {filtered.map((s) => {
-                const trendStr = `${s.trendPct >= 0 ? "+" : ""}${s.trendPct}%`;
-                // trend improvement is a DECREASE in risk %.
-                const improving = s.trendPct < 0;
-                return (
-                  <div key={s.key} className="grid grid-cols-[1fr_60px_120px_160px_100px_80px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
-                    <div className="min-w-0 truncate font-medium">{s.name}</div>
-                    <div className="text-muted-foreground">{s.grade}</div>
-                    <div>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                        style={{ background: riskColor(s.risk) }}
-                      >
-                        {s.risk}
-                      </span>
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-border/60">
+              <div className="min-w-[820px]">
+                <div className="grid grid-cols-[1fr_60px_120px_140px_80px_70px_160px] gap-3 bg-secondary/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <div>Student</div><div>Grade</div><div>Risk</div><div>Focus</div><div>Latest %</div><div>Trend</div><div className="text-right">Report</div>
+                </div>
+                {filtered.map((s) => {
+                  const trendStr = `${s.trendPct >= 0 ? "+" : ""}${s.trendPct}%`;
+                  const improving = s.trendPct < 0;
+                  const busy = busyId === s.latestReportId;
+                  return (
+                    <div key={s.key} className="grid grid-cols-[1fr_60px_120px_140px_80px_70px_160px] items-center gap-3 border-t border-border/40 px-4 py-3 text-sm">
+                      <div className="min-w-0 truncate font-medium">{s.name}</div>
+                      <div className="text-muted-foreground">{s.grade}</div>
+                      <div>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                          style={{ background: riskColor(s.risk) }}
+                        >
+                          {s.risk}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">{s.focus}</div>
+                      <div className="text-muted-foreground">{s.latestPercent}%</div>
+                      <div className={improving ? "text-success" : s.trendPct > 0 ? "text-destructive" : "text-muted-foreground"}>
+                        {trendStr}
+                      </div>
+                      <div className="flex justify-end gap-1.5">
+                        <Button variant="glass" size="sm" disabled={busy} onClick={() => void handleTeacherShare(s)}>
+                          <Share2 className="h-3.5 w-3.5" /> Share
+                        </Button>
+                        <Button variant="hero" size="sm" disabled={busy} onClick={() => void handleTeacherDownload(s)}>
+                          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} PDF
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-muted-foreground">{s.focus}</div>
-                    <div className="text-muted-foreground">{s.latestPercent}%</div>
-                    <div className={improving ? "text-success" : s.trendPct > 0 ? "text-destructive" : "text-muted-foreground"}>
-                      {trendStr}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
               {filtered.length === 0 && (
                 <div className="border-t border-border/40 px-4 py-6 text-center text-sm text-muted-foreground">
                   No students match "{query}".
