@@ -229,6 +229,9 @@ function Reports() {
                       <Button variant="glass" size="sm" onClick={() => setOpenId(open ? null : rep.row.id)}>
                         <FileText className="h-3.5 w-3.5" /> {open ? "Hide" : "View"}
                       </Button>
+                      <Button variant="glass" size="sm" onClick={() => void handleShare(rep)}>
+                        <Share2 className="h-3.5 w-3.5" /> Share
+                      </Button>
                       <Button variant="hero" size="sm" onClick={() => handleDownload(rep)}>
                         <Download className="h-3.5 w-3.5" /> PDF
                       </Button>
