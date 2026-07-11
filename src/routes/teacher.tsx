@@ -51,6 +51,7 @@ function TeacherPortal() {
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState<ReportRow[]>([]);
+  const [sessions, setSessions] = useState<GameSessionRow[]>([]);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -62,15 +63,19 @@ function TeacherPortal() {
   async function load() {
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setSignedIn(false); setRows([]); setLoading(false); return; }
+    if (!u.user) { setSignedIn(false); setRows([]); setSessions([]); setLoading(false); return; }
     setSignedIn(true);
-    const { data, error } = await supabase
-      .from("reports")
-      .select("id, created_at, child_profile_id, child_name, child_age, child_grade, highest_disorder, highest_percent, risk_level")
-      .eq("parent_id", u.user.id)
-      .order("created_at", { ascending: false });
+    const [{ data, error }, { data: gs }] = await Promise.all([
+      supabase
+        .from("reports")
+        .select("id, created_at, child_profile_id, child_name, child_age, child_grade, highest_disorder, highest_percent, risk_level")
+        .eq("parent_id", u.user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("game_sessions").select("id, game_key, score, rounds, responses, created_at").eq("user_id", u.user.id).order("created_at", { ascending: false }).limit(500),
+    ]);
     if (error) console.error("teacher reports load failed", error);
     setRows((data as ReportRow[]) ?? []);
+    setSessions((gs as GameSessionRow[]) ?? []);
     setLoading(false);
   }
 
