@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Download, FileText, GraduationCap, Loader2, Search, Share2, Sparkles, Users } from "lucide-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
@@ -13,6 +14,7 @@ import {
   shareReportPDF,
   type Severity,
 } from "@/lib/assessment";
+import { last7DayBuckets, skillTrends, type GameSessionRow } from "@/lib/gameStats";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({ meta: [{ title: "Teacher Portal — NeuroLearn AI" }, { name: "description", content: "Classroom analytics, risk monitoring, and downloadable reports for teachers." }] }),
