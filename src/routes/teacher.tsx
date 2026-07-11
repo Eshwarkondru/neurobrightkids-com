@@ -205,6 +205,39 @@ function TeacherPortal() {
             <StatCard label="Total reports" value={String(totalReports)} icon={GraduationCap} />
           </div>
 
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <div className="glass-strong rounded-3xl p-5 lg:col-span-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-sm font-semibold">Class Weekly Progress</div>
+                <div className="text-xs text-muted-foreground">Average game accuracy · last 7 days</div>
+              </div>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={last7DayBuckets(sessions)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={12} domain={[0, 100]} />
+                    <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                    <Line type="monotone" dataKey="accuracy" stroke="hsl(217 91% 60%)" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="glass-strong rounded-3xl p-5">
+              <div className="mb-3 text-sm font-semibold">Skill Trends (class)</div>
+              <ul className="space-y-2 text-sm">
+                {skillTrends(sessions).map((t) => (
+                  <li key={t.disorder} className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2">
+                    <span>{t.label}</span>
+                    <span className={`text-xs font-semibold ${t.deltaPct > 0 ? "text-success" : t.deltaPct < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      {t.gamesPlayed === 0 ? "—" : `${t.accuracy}% (${t.deltaPct >= 0 ? "+" : ""}${t.deltaPct}%)`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           <div className="mt-6 glass-strong rounded-3xl p-5">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-base font-semibold">Child performance overview</div>
