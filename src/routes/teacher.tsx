@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Download, FileText, GraduationCap, Loader2, Search, Share2, Sparkles, Users } from "lucide-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
@@ -13,6 +14,7 @@ import {
   shareReportPDF,
   type Severity,
 } from "@/lib/assessment";
+import { last7DayBuckets, skillTrends, type GameSessionRow } from "@/lib/gameStats";
 
 export const Route = createFileRoute("/teacher")({
   head: () => ({ meta: [{ title: "Teacher Portal — NeuroLearn AI" }, { name: "description", content: "Classroom analytics, risk monitoring, and downloadable reports for teachers." }] }),
@@ -49,6 +51,7 @@ function TeacherPortal() {
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState<ReportRow[]>([]);
+  const [sessions, setSessions] = useState<GameSessionRow[]>([]);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -60,15 +63,19 @@ function TeacherPortal() {
   async function load() {
     setLoading(true);
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setSignedIn(false); setRows([]); setLoading(false); return; }
+    if (!u.user) { setSignedIn(false); setRows([]); setSessions([]); setLoading(false); return; }
     setSignedIn(true);
-    const { data, error } = await supabase
-      .from("reports")
-      .select("id, created_at, child_profile_id, child_name, child_age, child_grade, highest_disorder, highest_percent, risk_level")
-      .eq("parent_id", u.user.id)
-      .order("created_at", { ascending: false });
+    const [{ data, error }, { data: gs }] = await Promise.all([
+      supabase
+        .from("reports")
+        .select("id, created_at, child_profile_id, child_name, child_age, child_grade, highest_disorder, highest_percent, risk_level")
+        .eq("parent_id", u.user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("game_sessions").select("id, game_key, score, rounds, responses, created_at").eq("user_id", u.user.id).order("created_at", { ascending: false }).limit(500),
+    ]);
     if (error) console.error("teacher reports load failed", error);
     setRows((data as ReportRow[]) ?? []);
+    setSessions((gs as GameSessionRow[]) ?? []);
     setLoading(false);
   }
 
@@ -196,6 +203,39 @@ function TeacherPortal() {
             <StatCard label="At risk" value={String(atRisk)} icon={AlertTriangle} />
             <StatCard label="Avg trend" value={`${avgTrend >= 0 ? "+" : ""}${avgTrend}%`} icon={GraduationCap} />
             <StatCard label="Total reports" value={String(totalReports)} icon={GraduationCap} />
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <div className="glass-strong rounded-3xl p-5 lg:col-span-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-sm font-semibold">Class Weekly Progress</div>
+                <div className="text-xs text-muted-foreground">Average game accuracy · last 7 days</div>
+              </div>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={last7DayBuckets(sessions)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={12} domain={[0, 100]} />
+                    <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                    <Line type="monotone" dataKey="accuracy" stroke="hsl(217 91% 60%)" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="glass-strong rounded-3xl p-5">
+              <div className="mb-3 text-sm font-semibold">Skill Trends (class)</div>
+              <ul className="space-y-2 text-sm">
+                {skillTrends(sessions).map((t) => (
+                  <li key={t.disorder} className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2">
+                    <span>{t.label}</span>
+                    <span className={`text-xs font-semibold ${t.deltaPct > 0 ? "text-success" : t.deltaPct < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                      {t.gamesPlayed === 0 ? "—" : `${t.accuracy}% (${t.deltaPct >= 0 ? "+" : ""}${t.deltaPct}%)`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="mt-6 glass-strong rounded-3xl p-5">
