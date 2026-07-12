@@ -87,6 +87,33 @@ const testimonials = [
 
 function Home() {
   const [demoOpen, setDemoOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>(DEMO_VIDEO_URL);
+  const [draftUrl, setDraftUrl] = useState<string>("");
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
+    if (stored) setVideoUrl(stored);
+  }, []);
+
+  const saveVideoUrl = () => {
+    const trimmed = draftUrl.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      toast.error("Please enter a valid https:// URL");
+      return;
+    }
+    if (trimmed) {
+      localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
+      setVideoUrl(trimmed);
+      toast.success("Demo video updated");
+    } else {
+      localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
+      setVideoUrl(DEMO_VIDEO_URL);
+      toast.success("Reverted to default demo video");
+    }
+    setSettingsOpen(false);
+  };
+
 
   return (
     <SiteLayout>
