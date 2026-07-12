@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity, BookOpen, Brain, Calculator, ChartBar, CheckCircle2, Eye, Gamepad2,
   GraduationCap, Heart, LineChart, Lightbulb, PenTool, Play, Puzzle, Rocket,
