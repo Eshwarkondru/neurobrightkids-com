@@ -82,6 +82,8 @@ const testimonials = [
 ];
 
 function Home() {
+  const [demoOpen, setDemoOpen] = useState(false);
+
   return (
     <SiteLayout>
       {/* HERO */}
