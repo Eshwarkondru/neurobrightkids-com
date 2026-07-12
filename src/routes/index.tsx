@@ -90,27 +90,99 @@ function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>(DEMO_VIDEO_URL);
   const [draftUrl, setDraftUrl] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [validating, setValidating] = useState(false);
+  const [validState, setValidState] = useState<"idle" | "ok" | "error">("idle");
+  const [validMessage, setValidMessage] = useState<string>("");
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
     if (stored) setVideoUrl(stored);
   }, []);
 
-  const saveVideoUrl = () => {
+  const resetValidation = () => {
+    setValidState("idle");
+    setValidMessage("");
+    setPreviewUrl("");
+  };
+
+  useEffect(() => {
+    resetValidation();
+  }, [draftUrl]);
+
+  const validateUrl = () => {
     const trimmed = draftUrl.trim();
-    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-      toast.error("Please enter a valid https:// URL");
+    if (!trimmed) {
+      resetValidation();
+      toast.message("Enter a URL to preview, or save empty to restore the default.");
       return;
     }
-    if (trimmed) {
-      localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
-      setVideoUrl(trimmed);
-      toast.success("Demo video updated");
-    } else {
+    if (!/^https:\/\//i.test(trimmed)) {
+      setValidState("error");
+      setValidMessage("URL must start with https://");
+      return;
+    }
+    if (!/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(trimmed)) {
+      setValidState("error");
+      setValidMessage("URL must point to a direct video file (.mp4, .webm, .ogg, .mov).");
+      return;
+    }
+    setValidating(true);
+    setValidState("idle");
+    setValidMessage("");
+    const test = document.createElement("video");
+    test.preload = "metadata";
+    let done = false;
+    const finish = (ok: boolean, msg: string) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      setValidating(false);
+      if (ok) {
+        setValidState("ok");
+        setValidMessage(msg);
+        setPreviewUrl(trimmed);
+      } else {
+        setValidState("error");
+        setValidMessage(msg);
+        setPreviewUrl("");
+      }
+    };
+    const timer = setTimeout(
+      () => finish(false, "Timed out loading video. Check the URL, CORS headers, and hosting."),
+      10000,
+    );
+    test.onloadedmetadata = () =>
+      finish(
+        true,
+        `Playable · ${Math.round(test.duration)}s · ${test.videoWidth}×${test.videoHeight}`,
+      );
+    test.onerror = () =>
+      finish(
+        false,
+        "Could not load this video. It may be private, blocked by CORS, or in an unsupported format.",
+      );
+    test.src = trimmed;
+  };
+
+  const saveVideoUrl = () => {
+    const trimmed = draftUrl.trim();
+    if (!trimmed) {
       localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
       setVideoUrl(DEMO_VIDEO_URL);
       toast.success("Reverted to default demo video");
+      resetValidation();
+      setSettingsOpen(false);
+      return;
     }
+    if (validState !== "ok") {
+      toast.error("Please preview the video first to confirm it plays.");
+      return;
+    }
+    localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
+    setVideoUrl(trimmed);
+    toast.success("Demo video updated");
+    resetValidation();
     setSettingsOpen(false);
   };
 
@@ -166,7 +238,10 @@ function Home() {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <Dialog
+                open={settingsOpen}
+                onOpenChange={(o) => { setSettingsOpen(o); if (!o) resetValidation(); }}
+              >
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Set demo video URL</DialogTitle>
@@ -174,22 +249,63 @@ function Home() {
                       Paste a direct MP4/WebM URL from your host (e.g. Cloudinary, S3, Mux, Cloudflare Stream). Leave empty to restore the sample.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-2">
-                    <Label htmlFor="demo-url">Video URL</Label>
-                    <Input
-                      id="demo-url"
-                      type="url"
-                      placeholder="https://your-host.com/demo.mp4"
-                      value={draftUrl}
-                      onChange={(e) => setDraftUrl(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The URL must be publicly accessible and served over HTTPS with CORS enabled.
-                    </p>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="demo-url">Video URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="demo-url"
+                          type="url"
+                          placeholder="https://your-host.com/demo.mp4"
+                          value={draftUrl}
+                          onChange={(e) => setDraftUrl(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={validateUrl}
+                          disabled={validating || !draftUrl.trim()}
+                        >
+                          {validating ? "Checking…" : "Preview"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Must be an https:// link to a direct .mp4/.webm file with CORS enabled.
+                      </p>
+                    </div>
+
+                    {validState === "error" && (
+                      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                        {validMessage}
+                      </div>
+                    )}
+                    {validState === "ok" && (
+                      <div className="space-y-2">
+                        <div className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+                          ✓ {validMessage}
+                        </div>
+                        {previewUrl && (
+                          <video
+                            key={previewUrl}
+                            src={previewUrl}
+                            controls
+                            muted
+                            playsInline
+                            className="w-full aspect-video rounded-lg bg-black"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancel</Button>
-                    <Button variant="hero" onClick={saveVideoUrl}>Save</Button>
+                    <Button
+                      variant="hero"
+                      onClick={saveVideoUrl}
+                      disabled={validating || (draftUrl.trim() !== "" && validState !== "ok")}
+                    >
+                      Save
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
