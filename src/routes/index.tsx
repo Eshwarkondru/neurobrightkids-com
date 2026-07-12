@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity, BookOpen, Brain, Calculator, ChartBar, CheckCircle2, Eye, Gamepad2,
   GraduationCap, Heart, LineChart, Lightbulb, PenTool, Play, Puzzle, Rocket,
@@ -11,11 +11,15 @@ import {
 } from "recharts";
 import heroAi from "@/assets/hero-ai.png";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 
 const DEMO_VIDEO_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const DEMO_VIDEO_STORAGE_KEY = "neurolearn_demo_video_url";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -83,6 +87,33 @@ const testimonials = [
 
 function Home() {
   const [demoOpen, setDemoOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>(DEMO_VIDEO_URL);
+  const [draftUrl, setDraftUrl] = useState<string>("");
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
+    if (stored) setVideoUrl(stored);
+  }, []);
+
+  const saveVideoUrl = () => {
+    const trimmed = draftUrl.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      toast.error("Please enter a valid https:// URL");
+      return;
+    }
+    if (trimmed) {
+      localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
+      setVideoUrl(trimmed);
+      toast.success("Demo video updated");
+    } else {
+      localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
+      setVideoUrl(DEMO_VIDEO_URL);
+      toast.success("Reverted to default demo video");
+    }
+    setSettingsOpen(false);
+  };
+
 
   return (
     <SiteLayout>
@@ -114,14 +145,52 @@ function Home() {
                   </DialogHeader>
                   {demoOpen && (
                     <video
-                      key="demo-video"
-                      src={DEMO_VIDEO_URL}
+                      key={videoUrl}
+                      src={videoUrl}
                       controls
                       autoPlay
                       playsInline
                       className="w-full aspect-video bg-black"
                     />
                   )}
+                  <div className="flex justify-end px-6 pb-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-white/70 hover:text-white"
+                      onClick={() => { setDraftUrl(videoUrl === DEMO_VIDEO_URL ? "" : videoUrl); setSettingsOpen(true); }}
+                    >
+                      Change video URL
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Set demo video URL</DialogTitle>
+                    <DialogDescription>
+                      Paste a direct MP4/WebM URL from your host (e.g. Cloudinary, S3, Mux, Cloudflare Stream). Leave empty to restore the sample.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    <Label htmlFor="demo-url">Video URL</Label>
+                    <Input
+                      id="demo-url"
+                      type="url"
+                      placeholder="https://your-host.com/demo.mp4"
+                      value={draftUrl}
+                      onChange={(e) => setDraftUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The URL must be publicly accessible and served over HTTPS with CORS enabled.
+                    </p>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancel</Button>
+                    <Button variant="hero" onClick={saveVideoUrl}>Save</Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
