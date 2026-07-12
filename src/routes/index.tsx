@@ -19,6 +19,7 @@ import { SiteLayout } from "@/components/site/Layout";
 
 const DEMO_VIDEO_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+const DEMO_VIDEO_STORAGE_KEY = "neurolearn_demo_video_url";
 
 export const Route = createFileRoute("/")({
   head: () => ({
