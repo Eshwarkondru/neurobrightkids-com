@@ -90,27 +90,99 @@ function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>(DEMO_VIDEO_URL);
   const [draftUrl, setDraftUrl] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [validating, setValidating] = useState(false);
+  const [validState, setValidState] = useState<"idle" | "ok" | "error">("idle");
+  const [validMessage, setValidMessage] = useState<string>("");
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
     if (stored) setVideoUrl(stored);
   }, []);
 
-  const saveVideoUrl = () => {
+  const resetValidation = () => {
+    setValidState("idle");
+    setValidMessage("");
+    setPreviewUrl("");
+  };
+
+  useEffect(() => {
+    resetValidation();
+  }, [draftUrl]);
+
+  const validateUrl = () => {
     const trimmed = draftUrl.trim();
-    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-      toast.error("Please enter a valid https:// URL");
+    if (!trimmed) {
+      resetValidation();
+      toast.message("Enter a URL to preview, or save empty to restore the default.");
       return;
     }
-    if (trimmed) {
-      localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
-      setVideoUrl(trimmed);
-      toast.success("Demo video updated");
-    } else {
+    if (!/^https:\/\//i.test(trimmed)) {
+      setValidState("error");
+      setValidMessage("URL must start with https://");
+      return;
+    }
+    if (!/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(trimmed)) {
+      setValidState("error");
+      setValidMessage("URL must point to a direct video file (.mp4, .webm, .ogg, .mov).");
+      return;
+    }
+    setValidating(true);
+    setValidState("idle");
+    setValidMessage("");
+    const test = document.createElement("video");
+    test.preload = "metadata";
+    let done = false;
+    const finish = (ok: boolean, msg: string) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      setValidating(false);
+      if (ok) {
+        setValidState("ok");
+        setValidMessage(msg);
+        setPreviewUrl(trimmed);
+      } else {
+        setValidState("error");
+        setValidMessage(msg);
+        setPreviewUrl("");
+      }
+    };
+    const timer = setTimeout(
+      () => finish(false, "Timed out loading video. Check the URL, CORS headers, and hosting."),
+      10000,
+    );
+    test.onloadedmetadata = () =>
+      finish(
+        true,
+        `Playable · ${Math.round(test.duration)}s · ${test.videoWidth}×${test.videoHeight}`,
+      );
+    test.onerror = () =>
+      finish(
+        false,
+        "Could not load this video. It may be private, blocked by CORS, or in an unsupported format.",
+      );
+    test.src = trimmed;
+  };
+
+  const saveVideoUrl = () => {
+    const trimmed = draftUrl.trim();
+    if (!trimmed) {
       localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
       setVideoUrl(DEMO_VIDEO_URL);
       toast.success("Reverted to default demo video");
+      resetValidation();
+      setSettingsOpen(false);
+      return;
     }
+    if (validState !== "ok") {
+      toast.error("Please preview the video first to confirm it plays.");
+      return;
+    }
+    localStorage.setItem(DEMO_VIDEO_STORAGE_KEY, trimmed);
+    setVideoUrl(trimmed);
+    toast.success("Demo video updated");
+    resetValidation();
     setSettingsOpen(false);
   };
 
