@@ -238,7 +238,10 @@ function Home() {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <Dialog
+                open={settingsOpen}
+                onOpenChange={(o) => { setSettingsOpen(o); if (!o) resetValidation(); }}
+              >
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Set demo video URL</DialogTitle>
@@ -246,22 +249,63 @@ function Home() {
                       Paste a direct MP4/WebM URL from your host (e.g. Cloudinary, S3, Mux, Cloudflare Stream). Leave empty to restore the sample.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-2">
-                    <Label htmlFor="demo-url">Video URL</Label>
-                    <Input
-                      id="demo-url"
-                      type="url"
-                      placeholder="https://your-host.com/demo.mp4"
-                      value={draftUrl}
-                      onChange={(e) => setDraftUrl(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The URL must be publicly accessible and served over HTTPS with CORS enabled.
-                    </p>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="demo-url">Video URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="demo-url"
+                          type="url"
+                          placeholder="https://your-host.com/demo.mp4"
+                          value={draftUrl}
+                          onChange={(e) => setDraftUrl(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={validateUrl}
+                          disabled={validating || !draftUrl.trim()}
+                        >
+                          {validating ? "Checking…" : "Preview"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Must be an https:// link to a direct .mp4/.webm file with CORS enabled.
+                      </p>
+                    </div>
+
+                    {validState === "error" && (
+                      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                        {validMessage}
+                      </div>
+                    )}
+                    {validState === "ok" && (
+                      <div className="space-y-2">
+                        <div className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
+                          ✓ {validMessage}
+                        </div>
+                        {previewUrl && (
+                          <video
+                            key={previewUrl}
+                            src={previewUrl}
+                            controls
+                            muted
+                            playsInline
+                            className="w-full aspect-video rounded-lg bg-black"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancel</Button>
-                    <Button variant="hero" onClick={saveVideoUrl}>Save</Button>
+                    <Button
+                      variant="hero"
+                      onClick={saveVideoUrl}
+                      disabled={validating || (draftUrl.trim() !== "" && validState !== "ok")}
+                    >
+                      Save
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
