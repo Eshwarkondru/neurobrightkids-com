@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Activity, BookOpen, Brain, Calculator, ChartBar, CheckCircle2, Eye, Gamepad2,
   GraduationCap, Heart, LineChart, Lightbulb, PenTool, Play, Puzzle, Rocket,
@@ -10,7 +11,11 @@ import {
 } from "recharts";
 import heroAi from "@/assets/hero-ai.png";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SiteLayout } from "@/components/site/Layout";
+
+const DEMO_VIDEO_URL =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
 export const Route = createFileRoute("/")({
   head: () => ({
