@@ -153,6 +153,11 @@ function AuthPage() {
       toast.error("Password must be at least 6 characters.");
       return;
     }
+    if (selectedRole !== "child" && inviteCode.trim().length < 4) {
+      toast.error("An adult access code from your school or admin is required for this role.");
+      return;
+    }
+
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
