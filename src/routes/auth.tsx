@@ -63,6 +63,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<AppRole>("parent");
   const [organization, setOrganization] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+
   const [childName, setChildName] = useState("");
   const [childAge, setChildAge] = useState("8");
   const [childGrade, setChildGrade] = useState("3");
