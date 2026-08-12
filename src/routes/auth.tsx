@@ -182,11 +182,12 @@ function AuthPage() {
         roleError = error;
       } else if (selectedRole === "parent" || selectedRole === "teacher" || selectedRole === "special_educator") {
         try {
-          await assignPrivilegedRole({ data: { role: selectedRole } });
+          await assignPrivilegedRole({ data: { role: selectedRole, inviteCode: inviteCode.trim() } });
         } catch (err) {
           roleError = err;
         }
       }
+
       if (selectedRole === "child" && childName.trim()) {
         const { data: newChild } = await supabase.from("child_profiles").insert({
           owner_id: userId,
