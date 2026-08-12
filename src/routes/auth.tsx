@@ -355,6 +355,17 @@ function AuthPage() {
                     <PasswordField label="Create password" value={password} onChange={setPassword} show={showPassword} setShow={setShowPassword} />
                     <Field label="School / organization"><Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="Optional" /></Field>
                     {selectedRole === "child" && <Field label="Child profile name"><Input value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Aarav" /></Field>}
+                    {selectedRole !== "child" && (
+                      <Field label="Adult access code">
+                        <Input
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value)}
+                          placeholder="Provided by your school or admin"
+                          required
+                        />
+                      </Field>
+                    )}
+
                   </div>
                   {selectedRole === "child" && (
                     <div className="grid gap-4 sm:grid-cols-2">
