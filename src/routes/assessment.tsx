@@ -6,7 +6,9 @@ import { Progress } from "@/components/ui/progress";
 import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ASSESSMENT_QUESTIONS, computeAssessment, severityColor, type AssessmentResult } from "@/lib/assessment";
+import { useServerFn } from "@tanstack/react-start";
+import { ASSESSMENT_QUESTIONS, applyModelRisks, computeAssessment, severityColor, type AssessmentResult } from "@/lib/assessment";
+import { predictScreeningRisk } from "@/lib/api/predict.functions";
 
 export const Route = createFileRoute("/assessment")({
   head: () => ({ meta: [{ title: "Assessment — NeuroLearn AI" }, { name: "description", content: "Adaptive multi-disorder screening assessment for children." }] }),
@@ -19,6 +21,8 @@ function Assessment() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [modelVersion, setModelVersion] = useState<string | null>(null);
+  const predict = useServerFn(predictScreeningRisk);
   const total = ASSESSMENT_QUESTIONS.length;
   const done = i >= total;
   const progress = useMemo(() => (i / total) * 100, [i, total]);
@@ -32,7 +36,34 @@ function Assessment() {
     if (!done || saved || saving) return;
     setSaving(true);
     void (async () => {
-      const computed = computeAssessment(answers);
+      const base = computeAssessment(answers);
+      const accOf = (d: string) => {
+        const r = base.results.find((x) => x.disorder === d);
+        return r && r.total > 0 ? r.correct / r.total : 0;
+      };
+
+      // Frontend -> server function -> trained risk model -> UI/database.
+      let computed = base;
+      let mlVersion: string | null = null;
+      try {
+        const pred = await predict({
+          data: {
+            dyslexia: accOf("dyslexia"),
+            adhd: accOf("adhd"),
+            dyscalculia: accOf("dyscalculia"),
+            memory: accOf("memory"),
+          },
+        });
+        computed = applyModelRisks(base, {
+          dyslexia: pred.risks.dyslexia,
+          adhd: pred.risks.adhd,
+          dyscalculia: pred.risks.dyscalculia,
+        });
+        mlVersion = pred.modelVersion;
+      } catch (err) {
+        console.error("risk model prediction failed; using heuristic scores", err);
+      }
+      setModelVersion(mlVersion);
       setResult(computed);
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
@@ -106,7 +137,7 @@ function Assessment() {
   }, [done, saved, saving, answers]);
 
 
-  const restart = () => { setI(0); setAnswers([]); setSaved(false); setResult(null); };
+  const restart = () => { setI(0); setAnswers([]); setSaved(false); setResult(null); setModelVersion(null); };
   const current = ASSESSMENT_QUESTIONS[i];
 
   return (
@@ -141,6 +172,11 @@ function Assessment() {
                 <h2 className="mt-4 text-2xl font-bold">Assessment complete</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Highest indicator: <span className="font-semibold" style={{ color: severityColor(result.highest.severity) }}>{result.highest.label} · {result.highest.percent}% · {result.highest.severity}</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {modelVersion
+                    ? `Scored by the trained risk model (${modelVersion}) on 5,200 hybrid dataset samples`
+                    : "Scored with the offline heuristic fallback (model unavailable)"}
                 </p>
               </div>
               <div className="mt-6 space-y-3">

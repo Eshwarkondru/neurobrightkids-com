@@ -71,6 +71,7 @@ export type DisorderResult = {
   severity: Severity;
   correct: number;
   total: number;
+  source?: "model" | "heuristic";
 };
 
 export type AssessmentResult = {
@@ -117,6 +118,40 @@ export function computeAssessment(answers: number[]): AssessmentResult {
     highest,
     totalCorrect,
     totalQuestions: ASSESSMENT_QUESTIONS.length,
+    strengths: strengths.length ? strengths : ["Balanced performance across all measured skills"],
+    weaknesses: weaknesses.length ? weaknesses : ["No area currently exceeds moderate risk"],
+    recommendations: recommendationsFor(highest.disorder),
+    therapist: therapistFor(highest.disorder),
+    recommendedGames: recommendedGamesFor(highest.disorder),
+  };
+}
+
+/**
+ * Replace the heuristic risk percentages with the trained model's predictions
+ * for the domains the ML model covers, then re-derive severity, ordering,
+ * strengths/weaknesses and the recommendation set from the updated scores.
+ */
+export function applyModelRisks(
+  res: AssessmentResult,
+  risks: Partial<Record<Disorder, number>>,
+): AssessmentResult {
+  const results = res.results
+    .map((r) => {
+      const ml = risks[r.disorder];
+      if (typeof ml !== "number" || Number.isNaN(ml)) return { ...r, source: "heuristic" as const };
+      const percent = Math.round(Math.max(5, Math.min(95, ml)));
+      return { ...r, percent, severity: severityFor(percent), source: "model" as const };
+    })
+    .sort((a, b) => b.percent - a.percent);
+
+  const highest = results[0] ?? res.highest;
+  const strengths = results.filter((r) => r.percent <= 40).map((r) => `${r.label} skills are age-appropriate`);
+  const weaknesses = results.filter((r) => r.percent >= 60).map((r) => `${r.label} shows elevated risk (${r.percent}%)`);
+
+  return {
+    ...res,
+    results,
+    highest,
     strengths: strengths.length ? strengths : ["Balanced performance across all measured skills"],
     weaknesses: weaknesses.length ? weaknesses : ["No area currently exceeds moderate risk"],
     recommendations: recommendationsFor(highest.disorder),
