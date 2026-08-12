@@ -94,6 +94,10 @@ function Home() {
   const [validating, setValidating] = useState(false);
   const [validState, setValidState] = useState<"idle" | "ok" | "error">("idle");
   const [validMessage, setValidMessage] = useState<string>("");
+  const [videoMeta, setVideoMeta] = useState<
+    { duration: number; width: number; height: number; sizeBytes: number | null } | null
+  >(null);
+
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
