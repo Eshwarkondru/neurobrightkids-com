@@ -322,6 +322,31 @@ function Home() {
                         <div className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
                           ✓ {validMessage}
                         </div>
+                        {videoMeta && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { label: "Duration", value: formatDuration(videoMeta.duration) },
+                              {
+                                label: "Resolution",
+                                value: videoMeta.width
+                                  ? `${videoMeta.width}×${videoMeta.height}`
+                                  : "Unknown",
+                              },
+                              { label: "File size", value: formatSize(videoMeta.sizeBytes) },
+                            ].map((m) => (
+                              <div
+                                key={m.label}
+                                className="glass rounded-lg px-2 py-2 text-center"
+                              >
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  {m.label}
+                                </div>
+                                <div className="text-xs font-semibold">{m.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {previewUrl && (
                           <video
                             key={previewUrl}
