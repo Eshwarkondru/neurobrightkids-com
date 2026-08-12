@@ -204,8 +204,13 @@ function AuthPage() {
       }
       if (profileError || roleError) {
         console.error("profile/role setup failed", { profileError, roleError });
-        toast.error("Profile setup failed. Please try again.");
+        toast.error(
+          roleError && selectedRole !== "child"
+            ? "Account created, but the access code was not accepted. Ask your school or admin for a valid code."
+            : "Profile setup failed. Please try again.",
+        );
       }
+
     }
 
     setLoading(false);
