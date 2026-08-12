@@ -14,9 +14,9 @@ import { lovable } from "@/integrations/lovable";
 import type { Enums, Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" ? s.next : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } =>
+    typeof s.next === "string" ? { next: s.next } : {},
+
   head: () => ({
     meta: [
       { title: "Login — NeuroLearn AI" },
