@@ -63,6 +63,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<AppRole>("parent");
   const [organization, setOrganization] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+
   const [childName, setChildName] = useState("");
   const [childAge, setChildAge] = useState("8");
   const [childGrade, setChildGrade] = useState("3");
@@ -151,6 +153,11 @@ function AuthPage() {
       toast.error("Password must be at least 6 characters.");
       return;
     }
+    if (selectedRole !== "child" && inviteCode.trim().length < 4) {
+      toast.error("An adult access code from your school or admin is required for this role.");
+      return;
+    }
+
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
@@ -180,11 +187,12 @@ function AuthPage() {
         roleError = error;
       } else if (selectedRole === "parent" || selectedRole === "teacher" || selectedRole === "special_educator") {
         try {
-          await assignPrivilegedRole({ data: { role: selectedRole } });
+          await assignPrivilegedRole({ data: { role: selectedRole, inviteCode: inviteCode.trim() } });
         } catch (err) {
           roleError = err;
         }
       }
+
       if (selectedRole === "child" && childName.trim()) {
         const { data: newChild } = await supabase.from("child_profiles").insert({
           owner_id: userId,
@@ -196,8 +204,13 @@ function AuthPage() {
       }
       if (profileError || roleError) {
         console.error("profile/role setup failed", { profileError, roleError });
-        toast.error("Profile setup failed. Please try again.");
+        toast.error(
+          roleError && selectedRole !== "child"
+            ? "Account created, but the access code was not accepted. Ask your school or admin for a valid code."
+            : "Profile setup failed. Please try again.",
+        );
       }
+
     }
 
     setLoading(false);
@@ -355,6 +368,17 @@ function AuthPage() {
                     <PasswordField label="Create password" value={password} onChange={setPassword} show={showPassword} setShow={setShowPassword} />
                     <Field label="School / organization"><Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="Optional" /></Field>
                     {selectedRole === "child" && <Field label="Child profile name"><Input value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Aarav" /></Field>}
+                    {selectedRole !== "child" && (
+                      <Field label="Adult access code">
+                        <Input
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value)}
+                          placeholder="Provided by your school or admin"
+                          required
+                        />
+                      </Field>
+                    )}
+
                   </div>
                   {selectedRole === "child" && (
                     <div className="grid gap-4 sm:grid-cols-2">
