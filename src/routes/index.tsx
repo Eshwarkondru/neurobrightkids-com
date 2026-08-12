@@ -94,6 +94,10 @@ function Home() {
   const [validating, setValidating] = useState(false);
   const [validState, setValidState] = useState<"idle" | "ok" | "error">("idle");
   const [validMessage, setValidMessage] = useState<string>("");
+  const [videoMeta, setVideoMeta] = useState<
+    { duration: number; width: number; height: number; sizeBytes: number | null } | null
+  >(null);
+
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
@@ -104,11 +108,37 @@ function Home() {
     setValidState("idle");
     setValidMessage("");
     setPreviewUrl("");
+    setVideoMeta(null);
   };
 
   useEffect(() => {
     resetValidation();
   }, [draftUrl]);
+
+  const formatDuration = (secs: number) => {
+    if (!Number.isFinite(secs)) return "Unknown";
+    const total = Math.round(secs);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  const formatSize = (bytes: number | null) => {
+    if (bytes === null || !Number.isFinite(bytes)) return "Unknown";
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const fetchFileSize = async (url: string) => {
+    try {
+      const res = await fetch(url, { method: "HEAD" });
+      const len = res.headers.get("content-length");
+      if (len) setVideoMeta((m) => (m ? { ...m, sizeBytes: Number(len) } : m));
+    } catch {
+      /* size stays unknown (CORS or host restriction) */
+    }
+  };
 
   const validateUrl = () => {
     const trimmed = draftUrl.trim();
@@ -130,6 +160,7 @@ function Home() {
     setValidating(true);
     setValidState("idle");
     setValidMessage("");
+    setVideoMeta(null);
     const test = document.createElement("video");
     test.preload = "metadata";
     let done = false;
@@ -146,17 +177,23 @@ function Home() {
         setValidState("error");
         setValidMessage(msg);
         setPreviewUrl("");
+        setVideoMeta(null);
       }
     };
     const timer = setTimeout(
       () => finish(false, "Timed out loading video. Check the URL, CORS headers, and hosting."),
       10000,
     );
-    test.onloadedmetadata = () =>
-      finish(
-        true,
-        `Playable · ${Math.round(test.duration)}s · ${test.videoWidth}×${test.videoHeight}`,
-      );
+    test.onloadedmetadata = () => {
+      setVideoMeta({
+        duration: test.duration,
+        width: test.videoWidth,
+        height: test.videoHeight,
+        sizeBytes: null,
+      });
+      void fetchFileSize(trimmed);
+      finish(true, "Playable video confirmed");
+    };
     test.onerror = () =>
       finish(
         false,
@@ -164,6 +201,7 @@ function Home() {
       );
     test.src = trimmed;
   };
+
 
   const saveVideoUrl = () => {
     const trimmed = draftUrl.trim();
@@ -284,6 +322,31 @@ function Home() {
                         <div className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-xs text-success">
                           ✓ {validMessage}
                         </div>
+                        {videoMeta && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { label: "Duration", value: formatDuration(videoMeta.duration) },
+                              {
+                                label: "Resolution",
+                                value: videoMeta.width
+                                  ? `${videoMeta.width}×${videoMeta.height}`
+                                  : "Unknown",
+                              },
+                              { label: "File size", value: formatSize(videoMeta.sizeBytes) },
+                            ].map((m) => (
+                              <div
+                                key={m.label}
+                                className="glass rounded-lg px-2 py-2 text-center"
+                              >
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  {m.label}
+                                </div>
+                                <div className="text-xs font-semibold">{m.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {previewUrl && (
                           <video
                             key={previewUrl}
