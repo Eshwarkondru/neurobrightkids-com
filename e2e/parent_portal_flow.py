@@ -90,15 +90,18 @@ async def run(base_url: str, headed: bool) -> int:
         await page.goto(f"{base_url}/assessment", wait_until="domcontentloaded")
         answered = 0
         for _ in range(40):
-            options = page.locator("button.glass.rounded-2xl")
-            if await options.count() == 0:
-                break
-            await options.first.click()
-            answered += 1
-            await page.wait_for_timeout(120)
             if await page.get_by_text("Assessment complete").count() > 0:
                 break
+            options = page.locator("button.glass.rounded-2xl")
+            if await options.count() == 0:
+                await page.wait_for_timeout(500)
+                continue
+            await options.first.click()
+            answered += 1
+            await page.wait_for_timeout(150)
         check("all assessment questions answered", answered >= 15, f"{answered} answers submitted")
+
+
 
         await page.get_by_text("Assessment complete").wait_for(timeout=45000)
         highest = (await page.locator("p", has_text="Highest indicator").first.inner_text()).strip()
