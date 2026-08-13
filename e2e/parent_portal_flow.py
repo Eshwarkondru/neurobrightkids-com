@@ -51,8 +51,10 @@ async def run(base_url: str, headed: bool) -> int:
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
 
         def on_response(res):
-            if "_serverFn" in res.url and "predict" in res.url.lower():
+            # Server-function RPC endpoints are hashed, so match the transport.
+            if "_serverFn" in res.url and res.request.method == "POST":
                 predict_calls.append(res.status)
+
 
         page.on("response", on_response)
 
