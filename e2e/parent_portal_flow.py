@@ -59,7 +59,9 @@ async def run(base_url: str, headed: bool) -> int:
         # 1. Sign up a fresh child account (labels aren't linked to inputs, so
         # the form is located by its placeholders).
         await page.goto(f"{base_url}/auth", wait_until="domcontentloaded")
+        await page.wait_for_timeout(2500)  # let React hydrate before interacting
         await page.get_by_role("tab", name="Sign Up").click()
+
         form = page.locator("form").filter(has=page.get_by_placeholder("Child / Parent name"))
         await form.get_by_placeholder("Child / Parent name").fill(child_name)
         await form.get_by_role("combobox").first.click()
