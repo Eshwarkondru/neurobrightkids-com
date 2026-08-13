@@ -56,20 +56,23 @@ async def run(base_url: str, headed: bool) -> int:
 
         page.on("response", on_response)
 
-        # 1. Sign up a fresh child account.
+        # 1. Sign up a fresh child account (labels aren't linked to inputs, so
+        # the form is located by its placeholders).
         await page.goto(f"{base_url}/auth", wait_until="domcontentloaded")
         await page.get_by_role("tab", name="Sign Up").click()
-        form = page.locator("form").filter(has=page.get_by_label("Full name"))
-        await page.get_by_label("Full name").fill(child_name)
-        await page.get_by_label("Role").click()
-        await page.get_by_role("option", name="Child").click()
-        await page.get_by_label("Username / Email").fill(email)
-        await page.get_by_label("Create password").fill(password)
-        await page.get_by_label("Child profile name").fill(child_name)
-        await form.get_by_role("button", name=re.compile("Sign ?up|Create", re.I)).first.click()
+        form = page.locator("form").filter(has=page.get_by_placeholder("Child / Parent name"))
+        await form.get_by_placeholder("Child / Parent name").fill(child_name)
+        await form.get_by_role("combobox").first.click()
+        await page.get_by_role("option", name="Child", exact=True).click()
+        await form.get_by_placeholder("child@example.com").fill(email)
+        await form.get_by_placeholder("Minimum 6 characters").fill(password)
+        await form.get_by_placeholder("Aarav").fill(child_name)
+        await form.get_by_role("button", name=re.compile("Create Account", re.I)).click()
         await page.wait_for_url(re.compile(r"/(games|auth)"), timeout=30000)
         await page.goto(f"{base_url}/auth", wait_until="domcontentloaded")
+        await page.wait_for_timeout(2000)
         signed_in = await page.get_by_text("You are logged in").count() > 0
+
         check("child account created and signed in", signed_in, email)
         if not signed_in:
             await browser.close()
