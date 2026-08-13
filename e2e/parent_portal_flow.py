@@ -139,7 +139,9 @@ async def run(base_url: str, headed: bool) -> int:
         )
         await page.screenshot(path="/tmp/browser/e2e_parent_portal.png")
 
-        fatal = [e for e in console_errors if "Failed to load resource" not in e]
+        # Requests aborted by our own navigations surface as "Failed to fetch".
+        ignorable = ("Failed to load resource", "Failed to fetch", "AbortError")
+        fatal = [e for e in console_errors if not any(i in e for i in ignorable)]
         check("no unexpected console errors", not fatal, "; ".join(fatal[:3]))
 
         await browser.close()
