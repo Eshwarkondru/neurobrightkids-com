@@ -165,10 +165,14 @@ function Assessment() {
       }
       setSaved(true); setSaving(false);
     })();
-  }, [done, saved, saving, answers]);
+  }, [done, saved, saving, answers, attempt]);
 
 
-  const restart = () => { setI(0); setAnswers([]); setSaved(false); setResult(null); setModelVersion(null); };
+  const restart = () => {
+    setI(0); setAnswers([]); setTimes([]); setSaved(false); setResult(null);
+    setModelInfo(null); setModelError(null); setQuestionShownAt(Date.now());
+  };
+  const retryPrediction = () => { setModelError(null); setAttempt((a) => a + 1); };
   const current = ASSESSMENT_QUESTIONS[i];
 
   return (
@@ -191,10 +195,22 @@ function Assessment() {
                 ))}
               </div>
             </div>
+          ) : modelError ? (
+            <div className="mt-8 text-center">
+              <h2 className="text-xl font-bold">Scoring unavailable</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Your answers were recorded, but the screening model could not score them, so no risk
+                percentages are shown. {modelError}
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <Button variant="hero" size="lg" onClick={retryPrediction}>Try scoring again</Button>
+                <Button variant="glass" size="lg" onClick={restart}>Restart assessment</Button>
+              </div>
+            </div>
           ) : saving || !result ? (
             <div className="mt-8 text-center">
               <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
-              <p className="mt-4 text-sm text-muted-foreground">Analyzing responses and generating your personalized report…</p>
+              <p className="mt-4 text-sm text-muted-foreground">Extracting behavioral features and running the neural network…</p>
             </div>
           ) : (
             <div className="mt-6">
@@ -205,9 +221,9 @@ function Assessment() {
                   Highest indicator: <span className="font-semibold" style={{ color: severityColor(result.highest.severity) }}>{result.highest.label} · {result.highest.percent}% · {result.highest.severity}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {modelVersion
-                    ? `Scored by the trained risk model (${modelVersion}) on 5,200 hybrid dataset samples`
-                    : "Scored with the offline heuristic fallback (model unavailable)"}
+                  {modelInfo
+                    ? `Scored by the trained MLP neural network (${modelInfo.version}, ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features`
+                    : "Working Memory and Autism items are scored from item accuracy (outside the model's four targets)"}
                 </p>
               </div>
               <div className="mt-6 space-y-3">
