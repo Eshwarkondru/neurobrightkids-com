@@ -108,9 +108,9 @@ async def run(base_url: str, headed: bool) -> int:
         check("results screen shows a scored highest indicator", "%" in highest, highest)
 
         # 3. ML prediction server function was called and succeeded.
-        model_badge = await page.get_by_text(re.compile("trained risk model", re.I)).count() > 0
+        model_badge = await page.get_by_text(re.compile("trained MLP neural network", re.I)).count() > 0
         check("ML prediction API called", bool(predict_calls), f"statuses={predict_calls}")
-        check("ML model (not heuristic fallback) scored the report", model_badge)
+        check("deep-learning MLP scored the report", model_badge)
 
         percent_match = re.search(r"(\d+)%", highest)
         expected_percent = percent_match.group(1) if percent_match else None
