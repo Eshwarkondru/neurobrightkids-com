@@ -1,0 +1,53 @@
+{
+  "modelVersion": "mlp-v1",
+  "algorithm": "Multilayer perceptron 64-32 (ReLU, Adam, sklearn MLPRegressor)",
+  "features": [
+    "age",
+    "accuracy_overall",
+    "reading_accuracy",
+    "attention_accuracy",
+    "math_accuracy",
+    "memory_score",
+    "response_time_avg",
+    "response_time_var",
+    "spelling_errors",
+    "mirror_letter_errors",
+    "retry_frequency",
+    "task_completion",
+    "engagement_min"
+  ],
+  "targets": [
+    "dyslexia",
+    "dysgraphia",
+    "dyscalculia",
+    "adhd"
+  ],
+  "totalSamples": 5200,
+  "trainSamples": 4160,
+  "testSamples": 1040,
+  "split": "80/20, seed 42",
+  "epochs": 160,
+  "metrics": {
+    "dyslexia": {
+      "r2": 0.5461,
+      "mae": 6.551,
+      "auc": 0.9643
+    },
+    "dysgraphia": {
+      "r2": 0.5506,
+      "mae": 6.547,
+      "auc": 0.913
+    },
+    "dyscalculia": {
+      "r2": 0.5503,
+      "mae": 6.466,
+      "auc": 0.9885
+    },
+    "adhd": {
+      "r2": 0.5131,
+      "mae": 6.57,
+      "auc": 0.9162
+    }
+  },
+  "behavioralChannels": "derived from dataset skill scores at training time; real telemetry at inference"
+}
