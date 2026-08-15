@@ -222,7 +222,7 @@ function Assessment() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {modelInfo
-                    ? `Scored by the trained MLP neural network (${modelInfo.version}, ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features`
+                    ? `Scored by the trained MLP neural network (${modelInfo.version}, ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features — Dyslexia, Dysgraphia, Dyscalculia and ADHD only; working-memory and social items are scored from item accuracy`
                     : "Working Memory and Autism items are scored from item accuracy (outside the model's four targets)"}
                 </p>
               </div>
