@@ -64,14 +64,13 @@ async def run(base_url: str, headed: bool) -> int:
         await page.wait_for_timeout(2500)  # let React hydrate before interacting
         await page.get_by_role("tab", name="Sign Up").click()
 
-        form = page.locator("form").filter(has=page.get_by_placeholder("Child / Parent name"))
-        await form.get_by_placeholder("Child / Parent name").fill(child_name)
-        await form.get_by_role("combobox").first.click()
+        await page.get_by_placeholder("Child / Parent name").fill(child_name)
+        await page.get_by_role("combobox").first.click()
         await page.get_by_role("option", name="Child", exact=True).click()
-        await form.get_by_placeholder("child@example.com").fill(email)
-        await form.get_by_placeholder("Minimum 6 characters").fill(password)
-        await form.get_by_placeholder("Aarav").fill(child_name)
-        await form.get_by_role("button", name=re.compile("Create Account", re.I)).click()
+        await page.get_by_placeholder("child@example.com").last.fill(email)
+        await page.get_by_placeholder("Minimum 6 characters").fill(password)
+        await page.get_by_placeholder("Aarav").fill(child_name)
+        await page.get_by_role("button", name=re.compile("Create Account", re.I)).click()
         await page.wait_for_url(re.compile(r"/games"), timeout=45000)
         await page.goto(f"{base_url}/auth", wait_until="domcontentloaded")
         signed_in = True
@@ -108,9 +107,9 @@ async def run(base_url: str, headed: bool) -> int:
         check("results screen shows a scored highest indicator", "%" in highest, highest)
 
         # 3. ML prediction server function was called and succeeded.
-        model_badge = await page.get_by_text(re.compile("trained risk model", re.I)).count() > 0
+        model_badge = await page.get_by_text(re.compile("trained MLP neural network", re.I)).count() > 0
         check("ML prediction API called", bool(predict_calls), f"statuses={predict_calls}")
-        check("ML model (not heuristic fallback) scored the report", model_badge)
+        check("deep-learning MLP scored the report", model_badge)
 
         percent_match = re.search(r"(\d+)%", highest)
         expected_percent = percent_match.group(1) if percent_match else None

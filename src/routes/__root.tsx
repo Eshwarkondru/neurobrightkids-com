@@ -70,7 +70,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "AI-powered screening for Dyslexia, Dysgraphia, Dyscalculia & ADHD with adaptive learning and explainable insights for children, parents and teachers." },
       { name: "author", content: "NeuroLearn AI" },
       { property: "og:title", content: "NeuroLearn AI — Adaptive Learning & Multi-Disorder Screening" },
-      { property: "og:description", content: "Transformer-assisted early detection and personalized learning for children ages 6–15." },
+      { property: "og:description", content: "Neural-network early detection and personalized learning for children ages 6–15." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "NeuroLearn AI" },

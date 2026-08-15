@@ -14,7 +14,7 @@ export function Footer() {
               <span className="text-base font-bold">NeuroLearn AI</span>
             </div>
             <p className="mt-3 max-w-md text-sm text-muted-foreground">
-              Transformer-assisted adaptive learning & multi-disorder screening platform for
+              Neural-network adaptive learning & multi-disorder screening platform for
               children. Built with care, science, and explainable AI.
             </p>
             <div className="mt-4 flex gap-2">

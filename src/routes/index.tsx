@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "NeuroLearn AI — Early Detection. Personalized Learning. Better Futures." },
-      { name: "description", content: "Transformer-assisted adaptive learning and multi-disorder screening for Dyslexia, Dysgraphia, Dyscalculia, and ADHD." },
+      { name: "description", content: "Neural-network powered adaptive learning and multi-disorder screening for Dyslexia, Dysgraphia, Dyscalculia, and ADHD." },
       { property: "og:title", content: "NeuroLearn AI" },
       { property: "og:description", content: "AI-powered screening and adaptive learning for children." },
     ],
@@ -41,7 +41,7 @@ const disorders = [
 ];
 
 const features = [
-  { icon: Brain, title: "Transformer Behavioral Analytics", desc: "Sequence models analyze interaction patterns for nuanced cognitive signals." },
+  { icon: Brain, title: "Neural Behavioral Analytics", desc: "A trained MLP reads accuracy, response timing and error patterns from every session." },
   { icon: Sparkles, title: "Adaptive Learning Engine", desc: "Difficulty, modality and pacing adapt in real-time to each learner." },
   { icon: Target, title: "Multi-Disorder Prediction", desc: "Unified model screens for Dyslexia, Dysgraphia, Dyscalculia & ADHD." },
   { icon: Activity, title: "Real-Time Risk Assessment", desc: "Live risk indicators with confidence scoring during play." },
@@ -232,7 +232,7 @@ function Home() {
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div className="animate-fade-up">
             <div className="glass mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Transformer-assisted screening for ages 6–15
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Neural-network screening for ages 6–15
             </div>
             <h1 className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
               <span className="gradient-text">Early Detection.</span><br />
@@ -399,7 +399,7 @@ function Home() {
       <Section id="about" eyebrow="About the platform" title="A research-grade engine wrapped in play">
         <div className="grid gap-4 md:grid-cols-3">
           {[
-            { icon: Brain, t: "AI-based screening", d: "Behavioral signals from mini-games are interpreted by transformer models trained on multi-modal cognitive data." },
+            { icon: Brain, t: "AI-based screening", d: "Behavioral signals are scored by a multilayer perceptron trained on a 5,200-sample hybrid education dataset." },
             { icon: Sparkles, t: "Adaptive learning", d: "Activities re-shape themselves based on accuracy, latency, and engagement — keeping kids in flow." },
             { icon: ChartBar, t: "Behavioral analytics", d: "Eye-saccade proxies, response curves, and stroke dynamics power transparent insights." },
           ].map((c) => (
@@ -542,7 +542,7 @@ function Home() {
       {/* RESEARCH */}
       <Section eyebrow="Research innovation" title="Where it gets technical">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {["Transformer Models","Behavioral Analytics","Adaptive Learning","Explainable AI","Multi-Disorder Screening"].map((p) => (
+          {["Neural Networks","Behavioral Analytics","Adaptive Learning","Explainable AI","Multi-Disorder Screening"].map((p) => (
             <div key={p} className="glass-strong rounded-2xl p-5 text-center">
               <Trophy className="mx-auto h-5 w-5 text-primary" />
               <div className="mt-2 text-sm font-semibold">{p}</div>

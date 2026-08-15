@@ -8,7 +8,7 @@ export const Route = createFileRoute("/research")({
 });
 
 const pillars = [
-  { icon: Brain, t: "Transformer Models", d: "Sequence-aware models read the timing & ordering of every interaction, not just the answer." },
+  { icon: Brain, t: "Neural Networks", d: "A trained MLP reads accuracy, response timing and error counts, not just the answer." },
   { icon: ChartBar, t: "Behavioral Analytics", d: "Latency, hesitation, stroke dynamics and self-correction as cognitive signals." },
   { icon: Sparkles, t: "Adaptive Learning", d: "Item Response Theory + bandit policies tune content to the zone of proximal development." },
   { icon: Lightbulb, t: "Explainable AI", d: "SHAP-style attributions surface why a prediction was made, in plain language." },
