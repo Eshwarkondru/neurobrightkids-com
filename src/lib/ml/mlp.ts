@@ -24,13 +24,22 @@ export type Telemetry = {
 
 export type RiskTarget = "dyslexia" | "dysgraphia" | "dyscalculia" | "adhd";
 
+export type MlpTraining = {
+  algorithm: string;
+  totalSamples: number;
+  trainSamples: number;
+  testSamples: number;
+  split: string;
+  epochs: number;
+};
+
 export type MlpPrediction = {
   modelVersion: string;
   engine: "fastapi" | "embedded";
   risks: Record<RiskTarget, number>;
   metrics: Record<string, { r2: number; mae: number; auc: number | null }>;
   features: Telemetry;
-  training: Record<string, unknown>;
+  training: MlpTraining;
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -69,7 +78,14 @@ export function predictEmbedded(t: Telemetry): MlpPrediction {
     risks: runMlp(t),
     metrics: MLP_MODEL.card.metrics as MlpPrediction["metrics"],
     features: t,
-    training: MLP_MODEL.card as unknown as Record<string, unknown>,
+    training: {
+      algorithm: MLP_MODEL.card.algorithm,
+      totalSamples: MLP_MODEL.card.totalSamples,
+      trainSamples: MLP_MODEL.card.trainSamples,
+      testSamples: MLP_MODEL.card.testSamples,
+      split: MLP_MODEL.card.split,
+      epochs: MLP_MODEL.card.epochs,
+    },
   };
 }
 
