@@ -43,4 +43,11 @@ TARGETS: list[str] = [
     "risk_adhd",
 ]
 
-MODEL_VERSION = "mlp-v1"
+MODEL_VERSION = "mlp-v2"
+
+# Percentage at or above which a predicted risk score counts as "high risk".
+# The hybrid dataset is heavily skewed to low risk: at 60 only 0.1-2.3% of the
+# 5,200 samples are positive, which drove high-risk recall to ~0. At 40 the
+# positive rate is 8-39%, so the binary decision is learnable and reportable.
+HIGH_RISK_THRESHOLD = 40
+
