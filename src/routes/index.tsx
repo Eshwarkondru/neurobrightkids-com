@@ -103,7 +103,13 @@ function Home() {
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
+    // Drop the legacy sample-clip URL saved by older builds.
+    if (stored?.includes("BigBuckBunny")) {
+      localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
+      return;
+    }
     if (stored) setVideoUrl(stored);
+
   }, []);
 
   const resetValidation = () => {
