@@ -17,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 
-const DEMO_VIDEO_URL =
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+import demoVideo from "@/../public/demo/neurolearn-demo.mp4.asset.json";
+
+const DEMO_VIDEO_URL = demoVideo.url;
 const DEMO_VIDEO_STORAGE_KEY = "neurolearn_demo_video_url";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
