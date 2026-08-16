@@ -55,12 +55,43 @@ function Assessment() {
         return idx >= 0 && answers[idx] !== ASSESSMENT_QUESTIONS[idx]?.answer ? 1 : 0;
       };
 
+      // Resolve the signed-in parent and the active child profile *before*
+      // inference so the model receives the child's real age.
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id ?? null;
+      let childProfile: { id: string; child_name: string; age: number; grade: string | null } | null = null;
+      if (userId) {
+        const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
+        if (candidate) {
+          const { data: owned } = await supabase
+            .from("child_profiles")
+            .select("id, child_name, age, grade")
+            .eq("id", candidate)
+            .eq("owner_id", userId)
+            .maybeSingle();
+          childProfile = owned ?? null;
+        }
+        if (!childProfile) {
+          const { data: firstOwned } = await supabase
+            .from("child_profiles")
+            .select("id, child_name, age, grade")
+            .eq("owner_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          childProfile = firstOwned ?? null;
+          if (childProfile && typeof window !== "undefined") {
+            localStorage.setItem("neurolearn_active_child", childProfile.id);
+          }
+        }
+      }
+
       // Real behavioral feature extraction from this session's interactions.
       const rt = times.length ? times : [6];
       const avg = rt.reduce((a, b) => a + b, 0) / rt.length;
       const variance = rt.reduce((a, b) => a + (b - avg) ** 2, 0) / rt.length;
       const telemetry = {
-        age: 11,
+        age: childProfile?.age ?? 11,
         accuracy_overall: base.totalQuestions ? base.totalCorrect / base.totalQuestions : 0,
         reading_accuracy: accOf("dyslexia"),
         attention_accuracy: accOf("adhd"),
@@ -96,38 +127,10 @@ function Assessment() {
         return;
       }
       setResult(computed);
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      if (!userId) {
         toast.info("Sign in to save your personalized report.");
         setSaved(true); setSaving(false);
         return;
-      }
-      const userId = userData.user.id;
-
-      // Resolve the active child profile (verified to belong to this parent).
-      const candidate = typeof window !== "undefined" ? localStorage.getItem("neurolearn_active_child") : null;
-      let childProfile: { id: string; child_name: string; age: number; grade: string | null } | null = null;
-      if (candidate) {
-        const { data: owned } = await supabase
-          .from("child_profiles")
-          .select("id, child_name, age, grade")
-          .eq("id", candidate)
-          .eq("owner_id", userId)
-          .maybeSingle();
-        childProfile = owned ?? null;
-      }
-      if (!childProfile) {
-        const { data: firstOwned } = await supabase
-          .from("child_profiles")
-          .select("id, child_name, age, grade")
-          .eq("owner_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        childProfile = firstOwned ?? null;
-        if (childProfile && typeof window !== "undefined") {
-          localStorage.setItem("neurolearn_active_child", childProfile.id);
-        }
       }
 
       // Fall back to the parent's profile display name if no child profile exists.
@@ -135,8 +138,9 @@ function Assessment() {
       if (!displayChildName) {
         const { data: prof } = await supabase
           .from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
-        displayChildName = prof?.display_name?.trim() || (userData.user.email ?? "Child");
+        displayChildName = prof?.display_name?.trim() || (userData.user?.email ?? "Child");
       }
+
 
       const { error } = await supabase.from("reports").insert({
         parent_id: userId,
