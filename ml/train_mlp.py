@@ -20,18 +20,24 @@ import pathlib
 
 import joblib
 import numpy as np
-from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
+from sklearn.metrics import (
+    confusion_matrix,
+    mean_absolute_error,
+    r2_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from features import FEATURES, MODEL_VERSION, TARGETS
+from features import FEATURES, HIGH_RISK_THRESHOLD, MODEL_VERSION, TARGETS
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "ml" / "artifacts"
 SEED = 42
 HIDDEN = (64, 32)
+
 
 
 def build_frame() -> tuple[np.ndarray, np.ndarray]:
