@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 
-import demoVideo from "@/../public/demo/neurolearn-demo.mp4.asset.json";
+import demoVideo from "@/assets/demo/neurolearn-demo.mp4.asset.json";
 
 const DEMO_VIDEO_URL = demoVideo.url;
 const DEMO_VIDEO_STORAGE_KEY = "neurolearn_demo_video_url";
