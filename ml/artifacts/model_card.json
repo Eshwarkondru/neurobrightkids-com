@@ -1,5 +1,5 @@
 {
-  "modelVersion": "mlp-v1",
+  "modelVersion": "mlp-v2",
   "algorithm": "Multilayer perceptron 64-32 (ReLU, Adam, sklearn MLPRegressor)",
   "features": [
     "age",
@@ -24,29 +24,68 @@
   ],
   "totalSamples": 5200,
   "trainSamples": 4160,
+  "balancedTrainSamples": 4160,
+  "highRiskOversampling": "high-risk rows repeated 1x (2410 high / 1750 low)",
   "testSamples": 1040,
   "split": "80/20, seed 42",
-  "epochs": 160,
+  "highRiskThreshold": 40,
+  "epochs": 150,
   "metrics": {
     "dyslexia": {
-      "r2": 0.5461,
-      "mae": 6.551,
-      "auc": 0.9643
+      "r2": 0.5428,
+      "mae": 6.591,
+      "auc": 0.8762,
+      "confusion": {
+        "tn": 826,
+        "fp": 26,
+        "fn": 127,
+        "tp": 61
+      },
+      "recall": 0.3245,
+      "precision": 0.7011,
+      "f1": 0.4436
     },
     "dysgraphia": {
-      "r2": 0.5506,
-      "mae": 6.547,
-      "auc": 0.913
+      "r2": 0.5544,
+      "mae": 6.495,
+      "auc": 0.8703,
+      "confusion": {
+        "tn": 617,
+        "fp": 91,
+        "fn": 120,
+        "tp": 212
+      },
+      "recall": 0.6386,
+      "precision": 0.6997,
+      "f1": 0.6677
     },
     "dyscalculia": {
-      "r2": 0.5503,
-      "mae": 6.466,
-      "auc": 0.9885
+      "r2": 0.5459,
+      "mae": 6.489,
+      "auc": 0.8963,
+      "confusion": {
+        "tn": 942,
+        "fp": 17,
+        "fn": 58,
+        "tp": 23
+      },
+      "recall": 0.284,
+      "precision": 0.575,
+      "f1": 0.3802
     },
     "adhd": {
-      "r2": 0.5131,
-      "mae": 6.57,
-      "auc": 0.9162
+      "r2": 0.5183,
+      "mae": 6.542,
+      "auc": 0.8411,
+      "confusion": {
+        "tn": 535,
+        "fp": 97,
+        "fn": 143,
+        "tp": 265
+      },
+      "recall": 0.6495,
+      "precision": 0.732,
+      "f1": 0.6883
     }
   },
   "behavioralChannels": "derived from dataset skill scores at training time; real telemetry at inference"

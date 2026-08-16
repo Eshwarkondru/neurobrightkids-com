@@ -17,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/Layout";
 
-const DEMO_VIDEO_URL =
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+import demoVideo from "@/assets/demo/neurolearn-demo.mp4.asset.json";
+
+const DEMO_VIDEO_URL = demoVideo.url;
 const DEMO_VIDEO_STORAGE_KEY = "neurolearn_demo_video_url";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -101,7 +103,13 @@ function Home() {
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(DEMO_VIDEO_STORAGE_KEY) : null;
+    // Drop the legacy sample-clip URL saved by older builds.
+    if (stored?.includes("BigBuckBunny")) {
+      localStorage.removeItem(DEMO_VIDEO_STORAGE_KEY);
+      return;
+    }
     if (stored) setVideoUrl(stored);
+
   }, []);
 
   const resetValidation = () => {

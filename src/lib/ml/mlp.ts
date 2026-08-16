@@ -37,7 +37,19 @@ export type MlpPrediction = {
   modelVersion: string;
   engine: "fastapi" | "embedded";
   risks: Record<RiskTarget, number>;
-  metrics: Record<string, { r2: number; mae: number; auc: number | null }>;
+  metrics: Record<
+    string,
+    {
+      r2: number;
+      mae: number;
+      auc: number | null;
+      recall?: number | null;
+      precision?: number | null;
+      f1?: number;
+      confusion?: { tn: number; fp: number; fn: number; tp: number };
+    }
+  >;
+
   features: Telemetry;
   training: MlpTraining;
 };

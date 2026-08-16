@@ -20,18 +20,24 @@ import pathlib
 
 import joblib
 import numpy as np
-from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
+from sklearn.metrics import (
+    confusion_matrix,
+    mean_absolute_error,
+    r2_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from features import FEATURES, MODEL_VERSION, TARGETS
+from features import FEATURES, HIGH_RISK_THRESHOLD, MODEL_VERSION, TARGETS
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ARTIFACTS = ROOT / "ml" / "artifacts"
 SEED = 42
 HIDDEN = (64, 32)
+
 
 
 def build_frame() -> tuple[np.ndarray, np.ndarray]:
@@ -74,6 +80,18 @@ def main() -> None:
 
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=SEED)
 
+    # Class rebalancing: the dataset is dominated by low-risk children, which
+    # previously collapsed high-risk recall to ~0. MLPRegressor has no
+    # class_weight, so we replicate the (rarer) high-risk training rows until
+    # they carry roughly the same weight as the low-risk majority.
+    high_tr = (y_tr >= HIGH_RISK_THRESHOLD).any(axis=1)
+    n_high, n_low = int(high_tr.sum()), int((~high_tr).sum())
+    repeats = max(1, min(8, round(n_low / max(1, n_high))))
+    X_bal = np.concatenate([X_tr, np.repeat(X_tr[high_tr], repeats - 1, axis=0)])
+    y_bal = np.concatenate([y_tr, np.repeat(y_tr[high_tr], repeats - 1, axis=0)])
+    perm = np.random.default_rng(SEED).permutation(len(X_bal))
+    X_bal, y_bal = X_bal[perm], y_bal[perm]
+
     pipe = Pipeline([
         ("scaler", StandardScaler()),
         ("mlp", MLPRegressor(
@@ -90,19 +108,32 @@ def main() -> None:
             random_state=SEED,
         )),
     ])
-    pipe.fit(X_tr, y_tr)
+    pipe.fit(X_bal, y_bal)
 
     pred = pipe.predict(X_te)
-    metrics: dict[str, dict[str, float | None]] = {}
+    metrics: dict[str, dict[str, object]] = {}
     for i, t in enumerate(TARGETS):
         auc: float | None = None
-        high = (y_te[:, i] >= 60).astype(int)
+        high = (y_te[:, i] >= HIGH_RISK_THRESHOLD).astype(int)
         if high.sum() > 0 and high.sum() < len(high):
             auc = round(float(roc_auc_score(high, pred[:, i])), 4)
+        pred_high = (pred[:, i] >= HIGH_RISK_THRESHOLD).astype(int)
+        tn, fp, fn, tp = confusion_matrix(high, pred_high, labels=[0, 1]).ravel()
+        recall = tp / (tp + fn) if (tp + fn) else None
+        precision = tp / (tp + fp) if (tp + fp) else None
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if precision and recall
+            else 0.0
+        )
         metrics[t.replace("risk_", "")] = {
             "r2": round(float(r2_score(y_te[:, i], pred[:, i])), 4),
             "mae": round(float(mean_absolute_error(y_te[:, i], pred[:, i])), 3),
             "auc": auc,
+            "confusion": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
+            "recall": round(float(recall), 4) if recall is not None else None,
+            "precision": round(float(precision), 4) if precision is not None else None,
+            "f1": round(float(f1), 4),
         }
 
     mlp: MLPRegressor = pipe.named_steps["mlp"]
@@ -114,12 +145,16 @@ def main() -> None:
         "targets": [t.replace("risk_", "") for t in TARGETS],
         "totalSamples": int(X.shape[0]),
         "trainSamples": int(X_tr.shape[0]),
+        "balancedTrainSamples": int(X_bal.shape[0]),
+        "highRiskOversampling": f"high-risk rows repeated {repeats}x ({n_high} high / {n_low} low)",
         "testSamples": int(X_te.shape[0]),
         "split": f"80/20, seed {SEED}",
+        "highRiskThreshold": HIGH_RISK_THRESHOLD,
         "epochs": int(mlp.n_iter_),
         "metrics": metrics,
         "behavioralChannels": "derived from dataset skill scores at training time; real telemetry at inference",
     }
+
 
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, ARTIFACTS / "neurolearn_mlp.joblib")

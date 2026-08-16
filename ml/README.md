@@ -24,8 +24,25 @@ python3 ml/train_mlp.py
 Architecture: 13 inputs -> 64 -> 32 -> 4 (ReLU hidden, linear output), Adam,
 early stopping, seed 42, 80/20 split of the 5,200-sample hybrid dataset in
 `src/data/students.json`. Held-out test metrics land in the model card
-(R² ≈ 0.51–0.55, MAE ≈ 6.5 risk points, ROC-AUC ≈ 0.91–0.99 for the
+(R² ≈ 0.52–0.55, MAE ≈ 6.5 risk points, ROC-AUC ≈ 0.84–0.90 for the
 high-risk class).
+
+### High-risk threshold and class balance
+
+The dataset is skewed toward low-risk children. At a ≥60 cut-off only
+0.1–2.3% of samples are positive, and the regressor — correctly hedging toward
+the mean — almost never crossed it, giving ~0% high-risk recall for three of
+the four disorders even with strong ranking (AUC) performance. The high-risk
+decision threshold is therefore `HIGH_RISK_THRESHOLD = 40` (`ml/features.py`),
+where positives are 8–39% of the data, and rare high-risk training rows are
+oversampled so the network is not dominated by the low-risk majority.
+
+The model card now records per-disorder confusion matrices with recall,
+precision and F1 at that threshold (recall ≈ 0.28–0.65, precision ≈ 0.58–0.73).
+Residual imbalance for dyslexia and dyscalculia remains a known limitation:
+the model is stronger at ranking risk than at hard binary calls, which is why
+the app presents graded risk percentages and screening-only disclaimers.
+
 
 Training also regenerates `src/lib/ml/mlpModel.ts` — the same scaler
 statistics and weight matrices — so the web app's forward pass reproduces the
