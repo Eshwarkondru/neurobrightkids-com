@@ -227,6 +227,11 @@ function Reports() {
                       <div className="text-xs text-muted-foreground">
                         {rep.child.age != null ? `Age ${rep.child.age}` : "Age —"} · {rep.child.grade ? `Grade ${rep.child.grade}` : "Grade —"} · {rep.date}
                       </div>
+                      <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        model {rep.row.model_version ?? "n/a"} · thresholds {rep.row.threshold_version ?? "n/a"}
+                        {rep.row.inference_engine ? ` · ${rep.row.inference_engine}` : ""}
+                      </div>
+
                     </div>
                     <div className="flex gap-2">
                       <Button variant="glass" size="sm" onClick={() => setOpenId(open ? null : rep.row.id)}>
