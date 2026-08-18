@@ -132,6 +132,8 @@ export type Database = {
           highest_disorder: string | null
           highest_percent: number | null
           id: string
+          inference_engine: string | null
+          model_version: string | null
           parent_id: string
           recommendations: Json
           recommended_games: Json
@@ -139,6 +141,7 @@ export type Database = {
           scores: Json
           strengths: Json
           therapist: Json
+          threshold_version: string | null
           total_correct: number
           total_questions: number
           updated_at: string
@@ -154,6 +157,8 @@ export type Database = {
           highest_disorder?: string | null
           highest_percent?: number | null
           id?: string
+          inference_engine?: string | null
+          model_version?: string | null
           parent_id: string
           recommendations?: Json
           recommended_games?: Json
@@ -161,6 +166,7 @@ export type Database = {
           scores?: Json
           strengths?: Json
           therapist?: Json
+          threshold_version?: string | null
           total_correct?: number
           total_questions?: number
           updated_at?: string
@@ -176,6 +182,8 @@ export type Database = {
           highest_disorder?: string | null
           highest_percent?: number | null
           id?: string
+          inference_engine?: string | null
+          model_version?: string | null
           parent_id?: string
           recommendations?: Json
           recommended_games?: Json
@@ -183,6 +191,7 @@ export type Database = {
           scores?: Json
           strengths?: Json
           therapist?: Json
+          threshold_version?: string | null
           total_correct?: number
           total_questions?: number
           updated_at?: string
