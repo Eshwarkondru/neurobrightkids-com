@@ -35,6 +35,8 @@ export type MlpTraining = {
 
 export type MlpPrediction = {
   modelVersion: string;
+  /** Version tag of the decision thresholds applied to the raw risk scores. */
+  thresholdVersion: string;
   engine: "fastapi" | "embedded";
   risks: Record<RiskTarget, number>;
   metrics: Record<
@@ -83,9 +85,17 @@ export function runMlp(t: Telemetry): Record<RiskTarget, number> {
   return risks;
 }
 
+/**
+ * Threshold version tag: derived from the high-risk cut-off baked into the
+ * trained model card, so a report always records which cut-off produced its
+ * severity levels.
+ */
+export const THRESHOLD_VERSION = `hr${MLP_MODEL.card.highRiskThreshold}`;
+
 export function predictEmbedded(t: Telemetry): MlpPrediction {
   return {
     modelVersion: MLP_MODEL.modelVersion,
+    thresholdVersion: THRESHOLD_VERSION,
     engine: "embedded",
     risks: runMlp(t),
     metrics: MLP_MODEL.card.metrics as MlpPrediction["metrics"],

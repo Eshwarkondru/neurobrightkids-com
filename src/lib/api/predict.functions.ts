@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { predictEmbedded, type MlpPrediction, type Telemetry } from "@/lib/ml/mlp";
+import { predictEmbedded, THRESHOLD_VERSION, type MlpPrediction, type Telemetry } from "@/lib/ml/mlp";
 
 const unit = z.number().min(0).max(1);
 
@@ -48,7 +48,7 @@ export const predictScreeningRisk = createServerFn({ method: "POST" })
         if (!json?.risks || typeof json.risks.dyslexia !== "number") {
           throw new Error("ML service returned an unexpected payload");
         }
-        return { ...json, engine: "fastapi" };
+        return { ...json, engine: "fastapi", thresholdVersion: json.thresholdVersion ?? THRESHOLD_VERSION };
       } catch (err) {
         console.error("FastAPI model service unavailable, using embedded weights", err);
       }

@@ -46,6 +46,9 @@ type ReportRow = {
   weaknesses: unknown;
   total_correct: number;
   total_questions: number;
+  model_version: string | null;
+  threshold_version: string | null;
+  inference_engine: string | null;
   created_at: string;
 };
 
