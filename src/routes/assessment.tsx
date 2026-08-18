@@ -24,7 +24,7 @@ function Assessment() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [modelInfo, setModelInfo] = useState<{ version: string; engine: string } | null>(null);
+  const [modelInfo, setModelInfo] = useState<{ version: string; thresholdVersion: string; engine: string } | null>(null);
   const [modelError, setModelError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const predict = useServerFn(predictScreeningRisk);
@@ -110,6 +110,8 @@ function Assessment() {
 
       // Assessment -> feature extraction -> deep-learning model -> risk scores.
       let computed = base;
+      // Provenance stored with the report so results stay comparable across runs.
+      let modelMeta: { model_version: string; threshold_version: string; inference_engine: string } | null = null;
       try {
         const pred = await predict({ data: telemetry });
         computed = applyModelRisks(base, {
@@ -117,7 +119,8 @@ function Assessment() {
           adhd: pred.risks.adhd,
           dyscalculia: pred.risks.dyscalculia,
         });
-        setModelInfo({ version: pred.modelVersion, engine: pred.engine });
+        setModelInfo({ version: pred.modelVersion, thresholdVersion: pred.thresholdVersion, engine: pred.engine });
+        modelMeta = { model_version: pred.modelVersion, threshold_version: pred.thresholdVersion, inference_engine: pred.engine };
       } catch (err) {
         console.error("neural-network prediction failed", err);
         setModelInfo(null);
@@ -160,6 +163,9 @@ function Assessment() {
         weaknesses: computed.weaknesses as unknown as never,
         total_correct: computed.totalCorrect,
         total_questions: computed.totalQuestions,
+        model_version: modelMeta?.model_version ?? null,
+        threshold_version: modelMeta?.threshold_version ?? null,
+        inference_engine: modelMeta?.inference_engine ?? null,
       });
       if (error) {
         console.error("reports insert failed", error);
@@ -226,7 +232,7 @@ function Assessment() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {modelInfo
-                    ? `Scored by the trained MLP neural network (${modelInfo.version}, ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features — Dyslexia, Dysgraphia, Dyscalculia and ADHD only; working-memory and social items are scored from item accuracy`
+                    ? `Scored by the trained MLP neural network (model ${modelInfo.version} · thresholds ${modelInfo.thresholdVersion} · ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features — Dyslexia, Dysgraphia, Dyscalculia and ADHD only; working-memory and social items are scored from item accuracy`
                     : "Working Memory and Autism items are scored from item accuracy (outside the model's four targets)"}
                 </p>
               </div>

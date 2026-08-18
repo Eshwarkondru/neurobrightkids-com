@@ -82,6 +82,7 @@ def predict(t: Telemetry) -> dict:
     }
     return {
         "modelVersion": MODEL_VERSION,
+        "thresholdVersion": f"hr{CARD.get('highRiskThreshold')}",
         "engine": "fastapi",
         "risks": risks,
         "metrics": CARD["metrics"],
