@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export type Disorder = "dyslexia" | "adhd" | "autism" | "dyscalculia" | "memory";
+export type Disorder = "dyslexia" | "adhd" | "dyscalculia" | "memory";
 
 export type AssessmentQuestion = {
   id: string;
@@ -12,7 +12,7 @@ export type AssessmentQuestion = {
   answer: number;
 };
 
-// 15 questions across 5 disorders (3 each) — higher answer accuracy = LOWER risk for that disorder.
+// 12 questions across 4 domains (3 each) — higher answer accuracy = LOWER risk for that domain.
 export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
   // Dyslexia — letter reversal / phonics / word recognition
   { id: "d1", disorder: "dyslexia", title: "Reading & Phonics", q: "Which word matches the sound 'cat'?", options: ["bat", "cat", "rat", "hat"], answer: 1 },
@@ -22,10 +22,6 @@ export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
   { id: "a1", disorder: "adhd", title: "Focus Span", q: "Find the odd one: 🔵 🔵 🔴 🔵", options: ["1st", "2nd", "3rd", "4th"], answer: 2 },
   { id: "a2", disorder: "adhd", title: "Attention", q: "Which shape appears twice? ▲ ■ ● ▲ ◆", options: ["Square", "Circle", "Triangle", "Diamond"], answer: 2 },
   { id: "a3", disorder: "adhd", title: "Sustained Focus", q: "In 7 3 9 3 5 3 8, how many 3s appear?", options: ["1", "2", "3", "4"], answer: 2 },
-  // Autism — social/emotion recognition
-  { id: "s1", disorder: "autism", title: "Emotion Recognition", q: "A smiling face with bright eyes usually means:", options: ["Angry", "Sad", "Happy", "Scared"], answer: 2 },
-  { id: "s2", disorder: "autism", title: "Social Cue", q: "A friend says 'Can you pass the ball?' You should:", options: ["Ignore", "Pass the ball", "Walk away", "Hide it"], answer: 1 },
-  { id: "s3", disorder: "autism", title: "Facial Expression", q: "Tears + frown usually means:", options: ["Happy", "Excited", "Sad", "Sleepy"], answer: 2 },
   // Dyscalculia — number sense
   { id: "m1", disorder: "dyscalculia", title: "Number Sense", q: "Which group has more? ●●●● vs ●●●", options: ["Left", "Right", "Same", "Not sure"], answer: 0 },
   { id: "m2", disorder: "dyscalculia", title: "Arithmetic", q: "What is 6 + 5?", options: ["10", "11", "12", "13"], answer: 1 },
@@ -39,7 +35,6 @@ export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
 export const DISORDER_LABEL: Record<Disorder, string> = {
   dyslexia: "Dyslexia",
   adhd: "ADHD",
-  autism: "Autism",
   dyscalculia: "Dyscalculia",
   memory: "Working Memory",
 };
@@ -90,7 +85,6 @@ export function computeAssessment(answers: number[]): AssessmentResult {
   const perDisorder: Record<Disorder, { correct: number; total: number }> = {
     dyslexia: { correct: 0, total: 0 },
     adhd: { correct: 0, total: 0 },
-    autism: { correct: 0, total: 0 },
     dyscalculia: { correct: 0, total: 0 },
     memory: { correct: 0, total: 0 },
   };
@@ -172,11 +166,6 @@ function recommendationsFor(d: Disorder): string[] {
       "Use visual timers and checklists for daily routines",
       "Create a low-distraction, well-lit study area",
     ];
-    case "autism": return [
-      "Practice emotion-recognition using picture cards and short videos",
-      "Use social stories to prepare for new situations",
-      "Keep predictable daily routines with visual schedules",
-    ];
     case "dyscalculia": return [
       "Use physical objects (counters, blocks) to build number sense",
       "Practice number comparison and estimation games daily",
@@ -194,7 +183,6 @@ function therapistFor(d: Disorder): string[] {
   switch (d) {
     case "dyslexia": return ["Consult a certified reading specialist", "Consider an Orton-Gillingham based tutor", "Speech-language pathologist for phonological support"];
     case "adhd": return ["Consult a pediatric behavioral therapist", "Occupational therapist for sensory & focus strategies", "Discuss ADHD screening with a pediatrician"];
-    case "autism": return ["Consult a developmental pediatrician for full evaluation", "Speech-language therapist for social communication", "ABA or floortime-based therapist for social skills"];
     case "dyscalculia": return ["Consult an educational psychologist for math evaluation", "Specialized math tutor familiar with dyscalculia", "Occupational therapist for visual-spatial support"];
     case "memory": return ["Consult an educational psychologist for cognitive assessment", "Cognitive skills trainer for working memory", "Occupational therapist for executive function support"];
   }
@@ -211,11 +199,6 @@ export function recommendedGamesFor(d: Disorder): { key: string; name: string; r
       { key: "focus", name: "Focus Challenge", reason: "Improves sustained attention" },
       { key: "memory", name: "Memory Quest", reason: "Strengthens working memory" },
       { key: "shape", name: "Shape Recognition", reason: "Attention-to-detail practice" },
-    ];
-    case "autism": return [
-      { key: "phonics", name: "Phonics Adventure", reason: "Social & language patterns" },
-      { key: "memory", name: "Memory Quest", reason: "Pattern & sequence practice" },
-      { key: "shape", name: "Shape Recognition", reason: "Visual matching skills" },
     ];
     case "dyscalculia": return [
       { key: "math", name: "Math Puzzle Arena", reason: "Direct number-sense training" },

@@ -46,7 +46,7 @@ function Games() {
         return;
       }
       if (data.highest_disorder) {
-        const map: Record<string, Disorder> = { Dyslexia: "dyslexia", ADHD: "adhd", Autism: "autism", Dyscalculia: "dyscalculia", "Working Memory": "memory" };
+        const map: Record<string, Disorder> = { Dyslexia: "dyslexia", ADHD: "adhd", Dyscalculia: "dyscalculia", "Working Memory": "memory" };
         const d = map[data.highest_disorder];
         if (d) { setTopDisorder(d); setTopPercent(data.highest_percent ?? 0); }
       }

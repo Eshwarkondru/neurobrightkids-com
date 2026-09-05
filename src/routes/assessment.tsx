@@ -187,7 +187,7 @@ function Assessment() {
 
   return (
     <SiteLayout>
-      <PageHero eyebrow="Adaptive screening" title="Begin your assessment" subtitle="15 short tasks across reading, focus, social, math and memory. Results are calculated instantly." />
+      <PageHero eyebrow="Adaptive screening" title="Begin your assessment" subtitle="12 short tasks across reading, focus, math and memory. Results are calculated instantly." />
       <div className="mx-auto max-w-2xl">
         <div className="glass-strong rounded-3xl p-6 sm:p-8">
           <Progress value={done ? 100 : progress} className="h-2" />
@@ -232,8 +232,8 @@ function Assessment() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {modelInfo
-                    ? `Scored by the trained MLP neural network (model ${modelInfo.version} · thresholds ${modelInfo.thresholdVersion} · ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features — Dyslexia, Dysgraphia, Dyscalculia and ADHD only; working-memory and social items are scored from item accuracy`
-                    : "Working Memory and Autism items are scored from item accuracy (outside the model's four targets)"}
+                    ? `Scored by the trained MLP neural network (model ${modelInfo.version} · thresholds ${modelInfo.thresholdVersion} · ${modelInfo.engine === "fastapi" ? "FastAPI service" : "in-app inference"}) on 13 assessment & behavioral features — Dyslexia, Dysgraphia, Dyscalculia and ADHD only; working-memory items are scored from item accuracy`
+                    : "Working Memory items are scored from item accuracy (outside the model's four targets)"}
                 </p>
               </div>
               <div className="mt-6 space-y-3">

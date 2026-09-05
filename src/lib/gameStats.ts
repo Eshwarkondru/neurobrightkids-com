@@ -8,7 +8,7 @@ export const GAME_TO_DISORDER: Record<GameKey, Disorder> = {
   focus: "adhd",
   memory: "memory",
   math: "dyscalculia",
-  shape: "autism",
+  shape: "memory",
 };
 
 export const GAME_LABEL: Record<GameKey, string> = {
@@ -101,7 +101,7 @@ export function skillTrends(sessions: GameSessionRow[]): SkillTrend[] {
     return t >= now - startAgo * DAY_MS && t < now - endAgo * DAY_MS;
   };
   const bySkill: Record<Disorder, GameSessionRow[]> = {
-    dyslexia: [], adhd: [], autism: [], dyscalculia: [], memory: [],
+    dyslexia: [], adhd: [], dyscalculia: [], memory: [],
   };
   for (const s of sessions) {
     const disorder = GAME_TO_DISORDER[s.game_key as GameKey];
