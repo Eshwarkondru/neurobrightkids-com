@@ -49,11 +49,6 @@ const HOME_ACTIVITIES: Record<Disorder, { icon: typeof BookHeart; t: string; d: 
     { icon: Home, t: "Shopping list game", d: "Remember 4 items on the way to the shop, no writing." },
     { icon: BookHeart, t: "Story retell", d: "After reading, retell the story in the right order." },
   ],
-  autism: [
-    { icon: BookHeart, t: "Emotion cards", d: "Name the feeling on 5 face pictures and why they feel it." },
-    { icon: CalendarCheck, t: "Visual schedule", d: "Draw the day's routine so transitions are predictable." },
-    { icon: Sparkles, t: "Turn-taking play", d: "Play a simple board game focusing on waiting for your turn." },
-  ],
 };
 
 type ReportRow = {
