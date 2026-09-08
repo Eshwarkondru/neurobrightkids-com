@@ -8,10 +8,20 @@ import { supabase } from "@/integrations/supabase/client";
 export type GameKey =
   | "mirror"
   | "phonics"
+  | "writing"
   | "memory"
   | "focus"
   | "math"
   | "shape";
+
+/** Extra behavioural signals a round can report (used by the writing task). */
+export type RoundDetail = {
+  coverage?: number;      // 0..1 of the target letter path covered
+  offPath?: number;       // strokes outside the letter path
+  strokes?: number;       // pen-down count
+  retries?: number;       // clear-and-retry count within the round
+};
+
 
 const ROUNDS = 6;
 
