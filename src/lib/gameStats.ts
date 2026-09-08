@@ -5,6 +5,7 @@ import type { GameKey } from "@/components/games/GamePlayer";
 export const GAME_TO_DISORDER: Record<GameKey, Disorder> = {
   mirror: "dyslexia",
   phonics: "dyslexia",
+  writing: "dysgraphia",
   focus: "adhd",
   memory: "memory",
   math: "dyscalculia",
@@ -14,11 +15,13 @@ export const GAME_TO_DISORDER: Record<GameKey, Disorder> = {
 export const GAME_LABEL: Record<GameKey, string> = {
   mirror: "Mirror Letter",
   phonics: "Phonics",
+  writing: "Letter Tracing",
   focus: "Focus",
   memory: "Memory",
   math: "Math",
   shape: "Shape",
 };
+
 
 export type PerRound = { ms: number; correct: boolean };
 export type SessionMetrics = {
@@ -101,8 +104,9 @@ export function skillTrends(sessions: GameSessionRow[]): SkillTrend[] {
     return t >= now - startAgo * DAY_MS && t < now - endAgo * DAY_MS;
   };
   const bySkill: Record<Disorder, GameSessionRow[]> = {
-    dyslexia: [], adhd: [], dyscalculia: [], memory: [],
+    dyslexia: [], dysgraphia: [], adhd: [], dyscalculia: [], memory: [],
   };
+
   for (const s of sessions) {
     const disorder = GAME_TO_DISORDER[s.game_key as GameKey];
     if (disorder) bySkill[disorder].push(s);
