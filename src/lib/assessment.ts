@@ -99,10 +99,12 @@ export type AssessmentResult = {
 export function computeAssessment(answers: number[]): AssessmentResult {
   const perDisorder: Record<Disorder, { correct: number; total: number }> = {
     dyslexia: { correct: 0, total: 0 },
+    dysgraphia: { correct: 0, total: 0 },
     adhd: { correct: 0, total: 0 },
     dyscalculia: { correct: 0, total: 0 },
     memory: { correct: 0, total: 0 },
   };
+
   ASSESSMENT_QUESTIONS.forEach((q, idx) => {
     perDisorder[q.disorder].total += 1;
     if (answers[idx] === q.answer) perDisorder[q.disorder].correct += 1;
@@ -176,7 +178,13 @@ function recommendationsFor(d: Disorder): string[] {
       "Use color overlays or larger, dyslexia-friendly fonts when reading",
       "Read aloud with the child and pause to sound out unfamiliar words",
     ];
+    case "dysgraphia": return [
+      "Daily 10-minute letter-formation practice on lined or grid paper",
+      "Use a pencil grip and short tracing sheets before free writing",
+      "Let the child dictate ideas first, then copy them down in short lines",
+    ];
     case "adhd": return [
+
       "Break tasks into 10-minute chunks with movement breaks in between",
       "Use visual timers and checklists for daily routines",
       "Create a low-distraction, well-lit study area",
