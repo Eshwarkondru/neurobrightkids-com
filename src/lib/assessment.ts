@@ -1,43 +1,58 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export type Disorder = "dyslexia" | "adhd" | "dyscalculia" | "memory";
+export type Disorder = "dyslexia" | "dysgraphia" | "adhd" | "dyscalculia" | "memory";
+
+/** Behavioural channel an item contributes evidence to. */
+export type TaskType = "reading" | "phonics" | "writing" | "math" | "memory" | "attention";
 
 export type AssessmentQuestion = {
   id: string;
   disorder: Disorder;
+  taskType: TaskType;
   title: string;
   q: string;
   options: string[];
   answer: number;
+  /** A wrong answer here is evidence of a spelling error. */
+  spellingItem?: boolean;
+  /** A wrong answer here is evidence of mirror/letter-reversal confusion. */
+  mirrorItem?: boolean;
 };
 
-// 12 questions across 4 domains (3 each) — higher answer accuracy = LOWER risk for that domain.
+// 15 items across 5 domains (3 each). Higher item accuracy = LOWER risk evidence
+// for that domain. Answer keys are verified in test/assessment.test.ts.
 export const ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
-  // Dyslexia — letter reversal / phonics / word recognition
-  { id: "d1", disorder: "dyslexia", title: "Reading & Phonics", q: "Which word matches the sound 'cat'?", options: ["bat", "cat", "rat", "hat"], answer: 1 },
-  { id: "d2", disorder: "dyslexia", title: "Mirror Letters", q: "Which letter is the mirror of 'b'?", options: ["p", "d", "q", "g"], answer: 1 },
-  { id: "d3", disorder: "dyslexia", title: "Word Order", q: "Pick the correctly spelled word:", options: ["freind", "friend", "frined", "frein"], answer: 1 },
+  // Dyslexia — phonics / mirror letters / word recognition
+  { id: "d1", disorder: "dyslexia", taskType: "phonics", title: "Reading & Phonics", q: "Which word matches the sound 'cat'?", options: ["bat", "cat", "rat", "hat"], answer: 1 },
+  { id: "d2", disorder: "dyslexia", taskType: "reading", title: "Mirror Letters", q: "Which letter is the mirror of 'b'?", options: ["p", "d", "q", "g"], answer: 1, mirrorItem: true },
+  { id: "d3", disorder: "dyslexia", taskType: "reading", title: "Word Recognition", q: "Pick the correctly spelled word:", options: ["freind", "friend", "frined", "frein"], answer: 1, spellingItem: true },
+  // Dysgraphia — letter formation / copying / spacing
+  { id: "g1", disorder: "dysgraphia", taskType: "writing", title: "Letter Formation", q: "Which letter below is written backwards?", options: ["a", "m", "ᴎ", "e"], answer: 2, mirrorItem: true },
+  { id: "g2", disorder: "dysgraphia", taskType: "writing", title: "Copying Accuracy", q: "Copy this word exactly — blue. Which one matches?", options: ["bleu", "blue", "bule", "blu"], answer: 1, spellingItem: true },
+  { id: "g3", disorder: "dysgraphia", taskType: "writing", title: "Spacing & Order", q: "Which sentence has correct word spacing?", options: ["I like dogs", "Ilike dogs", "I likedogs", "Ilikedogs"], answer: 0 },
   // ADHD — attention / distractor
-  { id: "a1", disorder: "adhd", title: "Focus Span", q: "Find the odd one: 🔵 🔵 🔴 🔵", options: ["1st", "2nd", "3rd", "4th"], answer: 2 },
-  { id: "a2", disorder: "adhd", title: "Attention", q: "Which shape appears twice? ▲ ■ ● ▲ ◆", options: ["Square", "Circle", "Triangle", "Diamond"], answer: 2 },
-  { id: "a3", disorder: "adhd", title: "Sustained Focus", q: "In 7 3 9 3 5 3 8, how many 3s appear?", options: ["1", "2", "3", "4"], answer: 2 },
+  { id: "a1", disorder: "adhd", taskType: "attention", title: "Focus Span", q: "Find the odd one: 🔵 🔵 🔴 🔵", options: ["1st", "2nd", "3rd", "4th"], answer: 2 },
+  { id: "a2", disorder: "adhd", taskType: "attention", title: "Attention", q: "Which shape appears twice? ▲ ■ ● ▲ ◆", options: ["Square", "Circle", "Triangle", "Diamond"], answer: 2 },
+  { id: "a3", disorder: "adhd", taskType: "attention", title: "Sustained Focus", q: "In 7 3 9 3 5 3 8, how many 3s appear?", options: ["1", "2", "3", "4"], answer: 2 },
   // Dyscalculia — number sense
-  { id: "m1", disorder: "dyscalculia", title: "Number Sense", q: "Which group has more? ●●●● vs ●●●", options: ["Left", "Right", "Same", "Not sure"], answer: 0 },
-  { id: "m2", disorder: "dyscalculia", title: "Arithmetic", q: "What is 6 + 5?", options: ["10", "11", "12", "13"], answer: 1 },
-  { id: "m3", disorder: "dyscalculia", title: "Comparison", q: "Which is largest?", options: ["17", "71", "27", "37"], answer: 1 },
+  { id: "m1", disorder: "dyscalculia", taskType: "math", title: "Number Sense", q: "Which group has more? ●●●● vs ●●●", options: ["Left", "Right", "Same", "Not sure"], answer: 0 },
+  { id: "m2", disorder: "dyscalculia", taskType: "math", title: "Arithmetic", q: "What is 6 + 5?", options: ["10", "11", "12", "13"], answer: 1 },
+  { id: "m3", disorder: "dyscalculia", taskType: "math", title: "Comparison", q: "Which is largest?", options: ["17", "71", "27", "37"], answer: 1 },
   // Working memory
-  { id: "w1", disorder: "memory", title: "Sequence Recall", q: "Remember 3, 7, 2. Which sequence is it?", options: ["3,2,7", "7,3,2", "3,7,2", "2,7,3"], answer: 2 },
-  { id: "w2", disorder: "memory", title: "Working Memory", q: "Reverse of 4, 8, 1 is:", options: ["1,8,4", "4,1,8", "8,4,1", "1,4,8"], answer: 0 },
-  { id: "w3", disorder: "memory", title: "Recall", q: "The first question was about matching the sound of which word?", options: ["dog", "cat", "sun", "car"], answer: 1 },
+  { id: "w1", disorder: "memory", taskType: "memory", title: "Sequence Recall", q: "Remember 3, 7, 2. Which sequence is it?", options: ["3,2,7", "7,3,2", "3,7,2", "2,7,3"], answer: 2 },
+  { id: "w2", disorder: "memory", taskType: "memory", title: "Working Memory", q: "Reverse of 4, 8, 1 is:", options: ["1,8,4", "4,1,8", "8,4,1", "1,4,8"], answer: 0 },
+  { id: "w3", disorder: "memory", taskType: "memory", title: "Recall", q: "The first question was about matching the sound of which word?", options: ["dog", "cat", "sun", "car"], answer: 1 },
 ];
 
 export const DISORDER_LABEL: Record<Disorder, string> = {
   dyslexia: "Dyslexia",
+  dysgraphia: "Dysgraphia",
   adhd: "ADHD",
   dyscalculia: "Dyscalculia",
   memory: "Working Memory",
 };
+
 
 export type Severity = "Very Low" | "Mild" | "Moderate" | "High" | "Very High";
 
@@ -84,10 +99,12 @@ export type AssessmentResult = {
 export function computeAssessment(answers: number[]): AssessmentResult {
   const perDisorder: Record<Disorder, { correct: number; total: number }> = {
     dyslexia: { correct: 0, total: 0 },
+    dysgraphia: { correct: 0, total: 0 },
     adhd: { correct: 0, total: 0 },
     dyscalculia: { correct: 0, total: 0 },
     memory: { correct: 0, total: 0 },
   };
+
   ASSESSMENT_QUESTIONS.forEach((q, idx) => {
     perDisorder[q.disorder].total += 1;
     if (answers[idx] === q.answer) perDisorder[q.disorder].correct += 1;
@@ -161,7 +178,13 @@ function recommendationsFor(d: Disorder): string[] {
       "Use color overlays or larger, dyslexia-friendly fonts when reading",
       "Read aloud with the child and pause to sound out unfamiliar words",
     ];
+    case "dysgraphia": return [
+      "Daily 10-minute letter-formation practice on lined or grid paper",
+      "Use a pencil grip and short tracing sheets before free writing",
+      "Let the child dictate ideas first, then copy them down in short lines",
+    ];
     case "adhd": return [
+
       "Break tasks into 10-minute chunks with movement breaks in between",
       "Use visual timers and checklists for daily routines",
       "Create a low-distraction, well-lit study area",
@@ -182,7 +205,9 @@ function recommendationsFor(d: Disorder): string[] {
 function therapistFor(d: Disorder): string[] {
   switch (d) {
     case "dyslexia": return ["Consult a certified reading specialist", "Consider an Orton-Gillingham based tutor", "Speech-language pathologist for phonological support"];
+    case "dysgraphia": return ["Consult an occupational therapist for handwriting support", "Ask the school about assistive writing tools and extra time", "Educational psychologist for a written-expression evaluation"];
     case "adhd": return ["Consult a pediatric behavioral therapist", "Occupational therapist for sensory & focus strategies", "Discuss ADHD screening with a pediatrician"];
+
     case "dyscalculia": return ["Consult an educational psychologist for math evaluation", "Specialized math tutor familiar with dyscalculia", "Occupational therapist for visual-spatial support"];
     case "memory": return ["Consult an educational psychologist for cognitive assessment", "Cognitive skills trainer for working memory", "Occupational therapist for executive function support"];
   }
@@ -195,7 +220,13 @@ export function recommendedGamesFor(d: Disorder): { key: string; name: string; r
       { key: "phonics", name: "Phonics Adventure", reason: "Builds sound-letter mapping" },
       { key: "shape", name: "Shape Recognition", reason: "Supports visual discrimination" },
     ];
+    case "dysgraphia": return [
+      { key: "writing", name: "Letter Tracing Studio", reason: "Direct letter-formation and stroke practice" },
+      { key: "mirror", name: "Mirror Letter Challenge", reason: "Reduces letter-reversal in writing" },
+      { key: "shape", name: "Shape Recognition", reason: "Builds visual-motor control" },
+    ];
     case "adhd": return [
+
       { key: "focus", name: "Focus Challenge", reason: "Improves sustained attention" },
       { key: "memory", name: "Memory Quest", reason: "Strengthens working memory" },
       { key: "shape", name: "Shape Recognition", reason: "Attention-to-detail practice" },

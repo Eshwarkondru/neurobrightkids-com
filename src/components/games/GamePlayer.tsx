@@ -8,10 +8,20 @@ import { supabase } from "@/integrations/supabase/client";
 export type GameKey =
   | "mirror"
   | "phonics"
+  | "writing"
   | "memory"
   | "focus"
   | "math"
   | "shape";
+
+/** Extra behavioural signals a round can report (used by the writing task). */
+export type RoundDetail = {
+  coverage?: number;      // 0..1 of the target letter path covered
+  offPath?: number;       // strokes outside the letter path
+  strokes?: number;       // pen-down count
+  retries?: number;       // clear-and-retry count within the round
+};
+
 
 const ROUNDS = 6;
 
@@ -31,7 +41,7 @@ export function GamePlayer({
   const [feedback, setFeedback] = useState<null | "ok" | "no">(null);
   const [saved, setSaved] = useState(false);
   const [sessionSeed, setSessionSeed] = useState(0);
-  const [perRound, setPerRound] = useState<{ ms: number; correct: boolean }[]>([]);
+  const [perRound, setPerRound] = useState<{ ms: number; correct: boolean; detail?: RoundDetail }[]>([]);
   const [roundStart, setRoundStart] = useState<number>(() => Date.now());
   const [sessionStart, setSessionStart] = useState<number>(() => Date.now());
 
@@ -55,10 +65,11 @@ export function GamePlayer({
     if (open) setRoundStart(Date.now());
   }, [round, open]);
 
-  const onAnswer = (correct: boolean) => {
+  const onAnswer = (correct: boolean, detail?: RoundDetail) => {
     if (feedback) return;
     const ms = Date.now() - roundStart;
-    setPerRound((r) => [...r, { ms, correct }]);
+    setPerRound((r) => [...r, detail ? { ms, correct, detail } : { ms, correct }]);
+
     setFeedback(correct ? "ok" : "no");
     if (correct) setScore((s) => s + 1);
     setTimeout(() => {
@@ -92,14 +103,26 @@ export function GamePlayer({
       const avgResponseMs = perRound.length ? Math.round(totalMs / perRound.length) : 0;
       const mistakes = perRound.filter((r) => !r.correct).length;
       const accuracy = perRound.length ? perRound.filter((r) => r.correct).length / perRound.length : 0;
+      const withDetail = perRound.filter((r) => r.detail);
+      const retries = perRound.reduce((a, r) => a + (r.detail?.retries ?? 0), 0);
+      const strokeAccuracy = withDetail.length
+        ? withDetail.reduce((a, r) => a + (r.detail?.coverage ?? 0), 0) / withDetail.length
+        : null;
+      const offPath = perRound.reduce((a, r) => a + (r.detail?.offPath ?? 0), 0);
       const { error } = await supabase.from("game_sessions").insert({
         user_id: data.user.id,
         child_profile_id: childProfileId,
         game_key: game,
         score,
         rounds: ROUNDS,
-        responses: { metrics: { avgResponseMs, mistakes, accuracy, focusMs: sessionMs, sessionMs, perRound } },
+        responses: {
+          metrics: {
+            avgResponseMs, mistakes, accuracy, focusMs: sessionMs, sessionMs, perRound,
+            retries, strokeAccuracy, offPath,
+          },
+        },
       });
+
       if (error) console.error("game_sessions insert failed", error);
     })();
   }, [done, game, saved, score, perRound, sessionStart]);

@@ -34,7 +34,13 @@ const HOME_ACTIVITIES: Record<Disorder, { icon: typeof BookHeart; t: string; d: 
     { icon: Sparkles, t: "Letter hunt", d: "Find 10 words starting with the same sound around the house." },
     { icon: Home, t: "Sound swap", d: "Change the first sound of a word together: cat → bat → hat." },
   ],
+  dysgraphia: [
+    { icon: BookHeart, t: "Trace and copy", d: "Trace 5 letters on lined paper, then copy them without the guide." },
+    { icon: Sparkles, t: "Sand or air writing", d: "Write letters big in sand or in the air to build stroke memory." },
+    { icon: Home, t: "Short copy task", d: "Copy one sentence a day — accuracy matters more than speed." },
+  ],
   adhd: [
+
     { icon: Sparkles, t: "Focus sprint", d: "3 cycles of 5-minute focused drawing with a 1-minute break." },
     { icon: Home, t: "Visual checklist", d: "Draw today's 3 tasks and tick them off together." },
     { icon: CalendarCheck, t: "Movement break", d: "2 minutes of jumping or stretching between activities." },
