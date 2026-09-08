@@ -205,7 +205,9 @@ function recommendationsFor(d: Disorder): string[] {
 function therapistFor(d: Disorder): string[] {
   switch (d) {
     case "dyslexia": return ["Consult a certified reading specialist", "Consider an Orton-Gillingham based tutor", "Speech-language pathologist for phonological support"];
+    case "dysgraphia": return ["Consult an occupational therapist for handwriting support", "Ask the school about assistive writing tools and extra time", "Educational psychologist for a written-expression evaluation"];
     case "adhd": return ["Consult a pediatric behavioral therapist", "Occupational therapist for sensory & focus strategies", "Discuss ADHD screening with a pediatrician"];
+
     case "dyscalculia": return ["Consult an educational psychologist for math evaluation", "Specialized math tutor familiar with dyscalculia", "Occupational therapist for visual-spatial support"];
     case "memory": return ["Consult an educational psychologist for cognitive assessment", "Cognitive skills trainer for working memory", "Occupational therapist for executive function support"];
   }
@@ -218,7 +220,13 @@ export function recommendedGamesFor(d: Disorder): { key: string; name: string; r
       { key: "phonics", name: "Phonics Adventure", reason: "Builds sound-letter mapping" },
       { key: "shape", name: "Shape Recognition", reason: "Supports visual discrimination" },
     ];
+    case "dysgraphia": return [
+      { key: "writing", name: "Letter Tracing Studio", reason: "Direct letter-formation and stroke practice" },
+      { key: "mirror", name: "Mirror Letter Challenge", reason: "Reduces letter-reversal in writing" },
+      { key: "shape", name: "Shape Recognition", reason: "Builds visual-motor control" },
+    ];
     case "adhd": return [
+
       { key: "focus", name: "Focus Challenge", reason: "Improves sustained attention" },
       { key: "memory", name: "Memory Quest", reason: "Strengthens working memory" },
       { key: "shape", name: "Shape Recognition", reason: "Attention-to-detail practice" },
