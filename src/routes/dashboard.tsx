@@ -15,7 +15,7 @@ import {
 import {
   adjustRisk,
   buildDailyRecommendations,
-  GAME_LABEL,
+  labelForGameKey,
   last7DayBuckets,
   monthlyImprovement,
   skillTrends,
@@ -203,7 +203,7 @@ function Dashboard() {
                     return (
                       <li key={s.id} className="flex items-center justify-between rounded-xl bg-secondary/40 p-3">
                         <div>
-                          <div className="font-semibold">{GAME_LABEL[s.game_key as GameKey] ?? s.game_key}</div>
+                          <div className="font-semibold">{labelForGameKey(s.game_key)}</div>
                           <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString()}</div>
                         </div>
                         <div className="text-right">

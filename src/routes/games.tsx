@@ -6,6 +6,8 @@ import { SiteLayout, PageHero } from "@/components/site/Layout";
 import { GamePlayer, type GameKey } from "@/components/games/GamePlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { computeAssessment, DISORDER_LABEL, recommendedGamesFor, type Disorder } from "@/lib/assessment";
+import { EarlySkillsPlayer } from "@/components/games/EarlySkillsPlayer";
+import { EARLY_GAMES, LEVEL_LABEL, loadLevel, type EarlyGameKey, type EarlyGameMeta } from "@/lib/earlyGames";
 
 export const Route = createFileRoute("/games")({
   head: () => ({ meta: [{ title: "Games — NeuroLearn AI" }, { name: "description", content: "Adaptive mini-games recommended from your child's assessment." }] }),
@@ -23,6 +25,7 @@ const games: { key: GameKey; icon: typeof Eye; name: string; desc: string; tag: 
 
 function Games() {
   const [active, setActive] = useState<{ key: GameKey; name: string } | null>(null);
+  const [early, setEarly] = useState<EarlyGameKey | null>(null);
   const [topDisorder, setTopDisorder] = useState<Disorder | null>(null);
   const [topPercent, setTopPercent] = useState<number>(0);
 
@@ -97,12 +100,45 @@ function Games() {
         </>
       )}
 
+      <section className="mt-12">
+        <div className="glass-strong rounded-3xl p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-2xl" aria-hidden>🧸</span>
+            <h2 className="text-xl font-bold">Early Skills Games</h2>
+            <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">Ages 6–7</span>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Short, easy activities that get a little harder as your child gets better. Every round is saved to their progress.
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {EARLY_GAMES.map((g) => (
+              <EarlyCard key={g.key} g={g} onPlay={() => setEarly(g.key)} />
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            These are educational screening and practice activities — they show learning support signals, not a clinical diagnosis.
+          </p>
+        </div>
+      </section>
+
       <div className="mt-10 glass rounded-2xl p-4 text-center text-xs text-muted-foreground">
-        <Gamepad2 className="mr-1 inline h-3.5 w-3.5 text-primary" /> Tap Play on any card — 6 quick rounds per game.
+        <Gamepad2 className="mr-1 inline h-3.5 w-3.5 text-primary" /> Tap Play on any card — short rounds, instant feedback.
       </div>
 
       {active && (
         <GamePlayer open={!!active} onOpenChange={(v) => !v && setActive(null)} game={active.key} title={active.name} />
+      )}
+
+      {early && (
+        <EarlySkillsPlayer
+          open={!!early}
+          onOpenChange={(v) => !v && setEarly(null)}
+          gameKey={early}
+          onNextGame={() => {
+            const i = EARLY_GAMES.findIndex((g) => g.key === early);
+            setEarly(EARLY_GAMES[(i + 1) % EARLY_GAMES.length].key);
+          }}
+        />
       )}
     </SiteLayout>
   );
@@ -124,6 +160,29 @@ function GameCard({ g, recommended, onPlay }: { g: (typeof games)[number]; recom
         <div className="flex items-center gap-1 text-xs text-muted-foreground"><Trophy className="h-3.5 w-3.5 text-warning" /> Earn badges</div>
         <Button variant="hero" size="sm" onClick={onPlay}><Play className="h-3.5 w-3.5" /> Play</Button>
       </div>
+    </div>
+  );
+}
+
+function EarlyCard({ g, onPlay }: { g: EarlyGameMeta; onPlay: () => void }) {
+  const [level, setLevel] = useState(1);
+  useEffect(() => setLevel(loadLevel(g.key)), [g.key]);
+  return (
+    <div className="glass-strong rounded-3xl p-5 transition hover:-translate-y-1 hover:shadow-glow">
+      <div className={`mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${g.color} text-3xl shadow-glow`}>
+        <span aria-hidden>{g.emoji}</span>
+      </div>
+      <h3 className="text-lg font-bold">{g.name}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{g.blurb}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="rounded-full bg-secondary/70 px-2 py-0.5 font-medium">Skill: {g.skill}</span>
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 font-semibold text-primary">
+          Level {level} · {LEVEL_LABEL[level as 1 | 2 | 3]}
+        </span>
+      </div>
+      <Button variant="hero" size="lg" className="mt-4 w-full text-base" onClick={onPlay}>
+        <Play className="h-4 w-4" /> Play
+      </Button>
     </div>
   );
 }

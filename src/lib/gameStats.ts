@@ -1,6 +1,7 @@
 import type { Disorder, DisorderResult, Severity } from "@/lib/assessment";
 import { DISORDER_LABEL, severityFor } from "@/lib/assessment";
 import type { GameKey } from "@/components/games/GamePlayer";
+import { EARLY_GAMES, EARLY_GAME_TO_DISORDER, type EarlyGameKey } from "@/lib/earlyGames";
 
 export const GAME_TO_DISORDER: Record<GameKey, Disorder> = {
   mirror: "dyslexia",
@@ -21,6 +22,21 @@ export const GAME_LABEL: Record<GameKey, string> = {
   math: "Math",
   shape: "Shape",
 };
+
+/** Resolve any stored game_key (classic or `early_*`) to its screening domain. */
+export function disorderForGameKey(key: string): Disorder | undefined {
+  if (key.startsWith("early_")) return EARLY_GAME_TO_DISORDER[key.slice(6) as EarlyGameKey];
+  return GAME_TO_DISORDER[key as GameKey];
+}
+
+/** Human label for any stored game_key. */
+export function labelForGameKey(key: string): string {
+  if (key.startsWith("early_")) {
+    const meta = EARLY_GAMES.find((g) => g.key === key.slice(6));
+    if (meta) return meta.name;
+  }
+  return GAME_LABEL[key as GameKey] ?? key;
+}
 
 
 export type PerRound = { ms: number; correct: boolean };
@@ -108,7 +124,7 @@ export function skillTrends(sessions: GameSessionRow[]): SkillTrend[] {
   };
 
   for (const s of sessions) {
-    const disorder = GAME_TO_DISORDER[s.game_key as GameKey];
+    const disorder = disorderForGameKey(s.game_key);
     if (disorder) bySkill[disorder].push(s);
   }
   return (Object.keys(bySkill) as Disorder[]).map((d) => {
