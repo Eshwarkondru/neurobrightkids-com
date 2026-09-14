@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, RotateCcw, Volume2, ArrowRight, Eraser } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import {
   EARLY_GAMES,
   EARLY_GAME_METRIC,
@@ -237,7 +238,7 @@ export function EarlySkillsPlayer({
           game_key: `early_${gameKey}`,
           score: correctCount,
           rounds,
-          responses: { metrics },
+          responses: { metrics } as unknown as Json,
         });
         setSaveState(error ? "error" : "saved");
         if (error) console.error("early game session insert failed", error);
